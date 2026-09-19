@@ -1,0 +1,27 @@
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Flutter / Dart
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Datos y respaldos locales de SQL Server
+*.mdf
+*.ndf
+*.ldf
+*.bak
+
+# Archivos locales del sistema
+Thumbs.db
+.DS_Store

@@ -25,3 +25,12 @@ build/
 # Archivos locales del sistema
 Thumbs.db
 .DS_Store
+
+# Herramientas y estado local de demostracion
+.tools/
+.local/
+dist/
+
+# Material temporal y utilidades exclusivas de esta computadora
+/tmp_propuesta-*.jpg
+/scripts/abrir-instalador-sql.cmd

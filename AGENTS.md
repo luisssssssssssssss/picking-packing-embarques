@@ -22,6 +22,8 @@ El sistema debe desarrollarse con código, no como solución low-code.
 ## 2. Arquitectura tecnológica acordada
 
 ### Frontend
+**Actualización autorizada, 29 de septiembre de 2026:** la demostración actual de escritorio se implementa en Python con PySide6, a petición expresa del usuario. Conserva FastAPI y SQL Server. No usar Flutter para esta demo de PC. La aplicación móvil queda fuera de este incremento; las referencias a Flutter siguientes describen el plan original de movilidad y deberán revisarse antes de retomarlo.
+
 - Flutter
 - Lenguaje: Dart
 - Debe poder ejecutarse como:
@@ -39,6 +41,8 @@ El sistema debe desarrollarse con código, no como solución low-code.
 
 ### Base de datos
 - Microsoft SQL Server
+- Durante el desarrollo se utilizará el SQL Server local del usuario. No se requiere acceso al servidor de Nemak.
+- El destino de instalación podrá configurarse como otra base o instancia de SQL Server, sin cambiar el motor definido.
 - Usar SQL para tablas, relaciones, índices, vistas y procedimientos cuando sea conveniente.
 - Separar conceptualmente:
   - Integración / Staging
@@ -48,10 +52,22 @@ El sistema debe desarrollarse con código, no como solución low-code.
 
 ### Fuente de información
 - Archivo plano CSV o TXT.
-- El archivo será generado por un sistema externo.
+- Los archivos serán exportados de SAP y proporcionados por una persona para su importación manual.
+- No habrá conexión directa con SAP ni se necesitarán credenciales de SAP.
 - Todavía no existe una muestra real del archivo.
 - Durante el desarrollo se utilizarán archivos ficticios de prueba.
 - El sistema debe permitir adaptar posteriormente el mapeo de columnas sin rediseñar toda la aplicación.
+
+### Instalación y configuración local
+- La PC de desarrollo podrá ejecutar SQL Server y Python/FastAPI. Las apps Android y Windows se comunicarán con FastAPI.
+- La configuración de instancia/servidor, nombre de base y autenticación SQL estará en el backend, mediante variables de entorno o un archivo local .env excluido de Git.
+- requirements.txt se reservará para las dependencias Python; no contendrá credenciales ni configuración de conexión.
+- Se preparará una herramienta de instalación en Python para validar la conexión y crear la base, tablas y datos iniciales necesarios cuando no existan y se disponga de permisos suficientes.
+- SQL Server debe estar instalado previamente. Si el usuario no puede crear bases, se podrá usar una base vacía provisionada por un administrador, con permisos para preparar sus objetos.
+- La inicialización reconocerá instalaciones existentes; no eliminará ni sobrescribirá sus datos. Las actualizaciones usarán migraciones controladas.
+- Cambiar de base o instancia en la configuración no trasladará automáticamente datos históricos. Ese traslado requerirá un procedimiento separado.
+- Flutter solo necesitará la dirección de FastAPI y las credenciales del usuario de la aplicación; no almacenará credenciales SQL ni creará tablas directamente.
+- Para operar desde un celular, la PC que ejecute FastAPI deberá estar encendida y accesible por red. No se implementará offline en la primera versión.
 
 ### Control de versiones
 - Git
@@ -745,7 +761,7 @@ Estado del proyecto:
 
 - El proyecto está comenzando.
 - Existe una carpeta local creada por el usuario.
-- Todavía no existe código.
+- Existe SQL Server con 68 tablas, un inicializador versionado y una demo de escritorio Python/PySide6 que recorre importación, planeación, picking, packing, staging y embarque mediante FastAPI. Consultar docs/demo-escritorio.md para sus límites.
 - Todavía no existe CSV/TXT real.
 - Todavía no existe modelo definitivo de base de datos.
 - Todavía no se han confirmado todas las reglas del proceso del cliente.

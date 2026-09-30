@@ -1,0 +1,1386 @@
+// Modelo lógico v0.2. No es DDL. Ver CHECK, filtros y transacciones en la documentación.
+// FKs hacia módulos posteriores se incorporan mediante migraciones; este archivo muestra el modelo final.
+
+Table security.AppUser {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Login nvarchar(64) [not null]
+  DisplayName nvarchar(240) [not null]
+  PasswordHash nvarchar(512) [not null]
+  IsActive bit [not null]
+  LockedUntilUtc datetime2(3) [null]
+  FailedLoginCount int [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Login [unique]
+  }
+  Note: 'Entrega 1. Identidad de la aplicación, independiente del login de SQL Server. Login normalizado y único; no reutilizar identidades de usuarios dados de baja. PasswordHash incluye algoritmo, sal y parámetros; nunca contraseña reversible. JWT y secretos de firma no se guardan aquí.'
+}
+
+Table security.Role {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Name nvarchar(240) [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 1. Agrupa capacidades sin programar permisos por nombre de persona. '
+}
+
+Table security.Permission {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Description nvarchar(240) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 1. Operaciones autorizables, por ejemplo liberar planeación o cerrar embarque. '
+}
+
+Table security.UserRole {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  UserId bigint [not null]
+  RoleId bigint [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (UserId, RoleId) [unique]
+  }
+  Note: 'Entrega 1. Relación muchos a muchos. '
+}
+
+Table security.RolePermission {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  RoleId bigint [not null]
+  PermissionId bigint [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (RoleId, PermissionId) [unique]
+  }
+  Note: 'Entrega 1. Relación muchos a muchos. '
+}
+
+Table security.UserWarehouse {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  UserId bigint [not null]
+  WarehouseId bigint [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (UserId, WarehouseId) [unique]
+  }
+  Note: 'Entrega 1. Limita el ámbito operativo incluso si el rol permite la acción. Ausencia de asignación no significa acceso global. El acceso global debe ser un permiso explícito.'
+}
+
+Table platform.SchemaMigration {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  ApplicationCode nvarchar(64) [not null, note: 'Identificador fijo PickingPackingEmbarques; comprobar antes de modificar una instalación.']
+  Version nvarchar(64) [not null]
+  ScriptChecksum binary(32) [not null]
+  AppliedAtUtc datetime2(3) [not null]
+  ApplicationVersion nvarchar(64) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    Version [unique]
+  }
+  Note: 'Entrega 1. Registro de migraciones aplicadas; no guarda credenciales ni ejecuta cambios por sí sola. Solo registrar como aplicada al completarse correctamente; discrepancia de checksum requiere revisión. La instalación debe reconocer la identidad de esta aplicación antes de modificar una base existente. CHECK ApplicationCode = PickingPackingEmbarques; una tabla con ese nombre no basta para reconocer otra aplicación.'
+}
+
+Table platform.OperationRequest {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  ActorUserId bigint [not null]
+  IdempotencyKey uniqueidentifier [not null]
+  OperationCode nvarchar(64) [not null]
+  RequestHash binary(32) [not null]
+  Outcome nvarchar(64) [not null, note: 'SUCCEEDED o REJECTED']
+  ResponseCode int [not null]
+  ResultJson nvarchar(max) [null, note: 'Resultado mínimo sin secretos']
+  CompletedAtUtc datetime2(3) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    (ActorUserId, IdempotencyKey) [unique]
+  }
+  Note: 'Entrega 1. Identifica confirmaciones y reintentos; comparte transacción con el cambio operativo y su auditoría. Una misma clave con contenido distinto se rechaza. Se confirma registro, resultado y operación en una sola transacción; no dejar un IN_PROGRESS durable sin protocolo de recuperación. No purgar claves mientras se admitan reintentos de sus operaciones; definir retención antes del piloto.'
+}
+
+Table catalog.LogisticsPoint {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Name nvarchar(240) [not null]
+  PointType nvarchar(64) [not null, note: 'WAREHOUSE o DELIVERY_SITE']
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 1. Identidad de un origen o destino geográfico, independiente de cambios de dirección. Cada punto se asocia con exactamente un almacén o destino y un tipo coherente; validar al darlo de alta.'
+}
+
+Table catalog.PointAddress {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  PointId bigint [not null]
+  VersionNumber int [not null]
+  AddressText nvarchar(1000) [not null]
+  City nvarchar(240) [not null]
+  Region nvarchar(240) [null]
+  PostalCode nvarchar(64) [null]
+  CountryCode nvarchar(2) [not null]
+  Latitude decimal(9,6) [null]
+  Longitude decimal(9,6) [null]
+  TimeZoneId nvarchar(240) [not null]
+  ValidFromUtc datetime2(3) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    (PointId, VersionNumber) [unique]
+    (Id, PointId) [unique]
+  }
+  Note: 'Entrega 1. Dirección y coordenadas inmutables para preservar rutas históricas. Latitud entre -90 y 90; longitud entre -180 y 180; ambas informadas o ambas nulas. La dirección vigente es la última versión efectiva por punto. Cambiar dirección crea otra versión, sin editar la anterior.'
+}
+
+Table catalog.Warehouse {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Name nvarchar(240) [not null]
+  PointId bigint [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+    PointId [unique]
+  }
+  Note: 'Entrega 1. Almacén de origen; la ubicación interna se maneja en Location. '
+}
+
+Table catalog.Location {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  WarehouseId bigint [not null]
+  ParentLocationId bigint [null]
+  Code nvarchar(64) [not null]
+  Name nvarchar(240) [not null]
+  LocationType nvarchar(64) [not null, note: 'ZONE, AISLE, BIN, PACKING, STAGING, DOCK']
+  AllowsPicking bit [not null]
+  AllowsStorage bit [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (WarehouseId, Code) [unique]
+    (Id, WarehouseId) [unique]
+  }
+  Note: 'Entrega 1. Jerarquía simple de zonas, pasillos, posiciones, packing, preembarque y andenes. Padre del mismo almacén, sin ciclos y distinto de sí mismo. Andén se modela como Location tipo DOCK; no duplicar Dock y Location. Una ubicación con operaciones abiertas no puede desactivarse o moverse de almacén.'
+}
+
+Table catalog.Customer {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Name nvarchar(240) [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 1. Cliente comercial; puede tener múltiples puntos de entrega. '
+}
+
+Table catalog.DeliverySite {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  CustomerId bigint [not null]
+  Code nvarchar(64) [not null]
+  Name nvarchar(240) [not null]
+  PointId bigint [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (CustomerId, Code) [unique]
+    PointId [unique]
+    (Id, CustomerId) [unique]
+  }
+  Note: 'Entrega 1. Identifica una planta o sucursal concreta, no solo el nombre del cliente. '
+}
+
+Table catalog.DeliveryWindow {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  DeliverySiteId bigint [not null]
+  WeekDay int [not null, note: '1 a 7, lunes a domingo']
+  StartLocal time(0) [not null]
+  EndLocal time(0) [not null]
+  ValidFrom date [not null]
+  ValidTo date [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (DeliverySiteId, WeekDay, StartLocal, ValidFrom) [unique]
+  }
+  Note: 'Entrega 2. Ventanas semanales de referencia; la cita concreta se guarda en la parada. EndLocal > StartLocal. Horarios que cruzan medianoche se dividen en dos registros. Sin solapamientos de ventanas equivalentes durante su vigencia; festivos especiales quedan para extensión.'
+}
+
+Table catalog.UnitOfMeasure {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Name nvarchar(240) [not null]
+  QuantityScale int [not null, note: '0 a 6 decimales permitidos']
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 1. No confundir PZA, KG, caja o tarima. '
+}
+
+Table catalog.Material {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Description nvarchar(240) [not null]
+  BaseUnitId bigint [not null]
+  RequiresLot bit [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 1. Código estable y unidad base usada para conservar cantidades. La unidad base no cambia cuando existe historia operativa; requiere migración de datos o material nuevo. RequiresLot es propuesta de catálogo a confirmar con el negocio; no implica FEFO automático.'
+}
+
+Table catalog.MaterialUnitConversion {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  MaterialId bigint [not null]
+  FromUnitId bigint [not null]
+  FactorToBase decimal(28,12) [not null]
+  VersionNumber int [not null]
+  ValidFromUtc datetime2(3) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    (MaterialId, FromUnitId, VersionNumber) [unique]
+  }
+  Note: 'Entrega 1. Una caja no contiene necesariamente la misma cantidad para todos los materiales. Factor > 0; convertir siempre a la unidad base del material, sin cadenas ambiguas. La revisión de pedido conserva el factor usado. No recalcular historia con factores posteriores. Unidad base equivale a factor 1. No redondear silenciosamente fracciones inválidas.'
+}
+
+Table catalog.MaterialIdentifier {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  MaterialId bigint [not null]
+  UnitId bigint [not null]
+  Scheme nvarchar(64) [not null]
+  Value nvarchar(128) [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (Scheme, Value) [unique]
+  }
+  Note: 'Entrega 2. Permite códigos de barras u otros identificadores sin depender del dispositivo. No reutilizar un identificador para otro material; la captura manual sigue siendo válida.'
+}
+
+Table catalog.MaterialLot {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  MaterialId bigint [not null]
+  LotCode nvarchar(64) [not null]
+  ManufacturedOn date [null]
+  ExpiresOn date [null]
+  IsBlocked bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (MaterialId, LotCode) [unique]
+    (Id, MaterialId) [unique]
+  }
+  Note: 'Entrega 2. Un lote pertenece a un material. No se crea un lote ficticio para representar ausencia. Fecha de caducidad no anterior a fabricación, cuando ambas existen. La unicidad de lote por material debe confirmarse con el cliente; si cambia por fabricante, agregar ese ámbito antes de implementar.'
+}
+
+Table catalog.MaterialLocation {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  MaterialId bigint [not null]
+  LocationId bigint [not null]
+  IsPreferred bit [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (MaterialId, LocationId) [unique]
+  }
+  Note: 'Entrega 2. Relación muchos a muchos; NO representa existencias ni reservas. Permitir varias ubicaciones para un material y varios materiales por ubicación. Elegir ubicación preferente no garantiza que exista cantidad física.'
+}
+
+Table catalog.HandlingUnitType {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Name nvarchar(240) [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 3. Por ejemplo caja o tarima; sin cálculo de estiba o volumetría. '
+}
+
+Table integration.SourceSystem {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Description nvarchar(240) [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 1. Identifica la exportación, incluyendo sociedad/planta si son parte de la clave SAP. No es conexión a SAP. Dos pedidos con igual número de distintos ámbitos de origen no se mezclan.'
+}
+
+Table integration.MappingProfileVersion {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  SourceSystemId bigint [not null]
+  ProfileCode nvarchar(64) [not null]
+  VersionNumber int [not null]
+  Delimiter nvarchar(8) [not null]
+  EncodingName nvarchar(64) [not null]
+  HasHeader bit [not null]
+  DateFormat nvarchar(64) [not null]
+  DecimalSeparator nvarchar(1) [not null]
+  SourceTimeZone nvarchar(240) [not null]
+  Mode nvarchar(64) [not null, note: 'ORDER_SNAPSHOT inicial']
+  DefinitionHash binary(32) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    (SourceSystemId, ProfileCode, VersionNumber) [unique]
+  }
+  Note: 'Entrega 1. Formato explícito e inmutable del CSV/TXT recibido. No adivinar fechas o separadores ambiguos. Propuesta inicial: archivo contiene pedidos completos; fragmentos/deltas requieren contrato explícito. Editar un mapeo genera una nueva versión.'
+}
+
+Table integration.MappingField {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  ProfileVersionId bigint [not null]
+  TargetField nvarchar(64) [not null]
+  SourceColumnName nvarchar(240) [null]
+  SourceColumnIndex int [null]
+  ConstantValue nvarchar(240) [null]
+  IsRequired bit [not null]
+  TransformCode nvarchar(64) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    (ProfileVersionId, TargetField) [unique]
+  }
+  Note: 'Entrega 1. Una columna o constante de origen alimenta un campo interno permitido. Exactamente uno entre nombre, índice o constante. Índices positivos. Transformaciones de lista permitida; nunca ejecutar expresiones arbitrarias del archivo.'
+}
+
+Table integration.ImportedFile {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  SourceSystemId bigint [not null]
+  ContentHash binary(32) [not null]
+  ByteLength bigint [not null]
+  OriginalFileName nvarchar(240) [not null]
+  StorageKey nvarchar(240) [not null, note: 'Referencia controlada al archivo, no ruta proporcionada por el usuario']
+  UploadedBy bigint [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    (SourceSystemId, ContentHash) [unique]
+  }
+  Note: 'Entrega 1. Contenido original inmutable y huella de bytes; nombre del archivo no es su identidad. Conservar bytes originales y hash; ruta física bajo control del backend. Tamaño > 0 y límites configurados antes de leer; archivos vacíos se rechazan y auditan sin importar. Respaldar también los archivos externos; restaurar solo SQL no los recupera.'
+}
+
+Table integration.ImportRun {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  FileId bigint [not null]
+  ProfileVersionId bigint [not null]
+  AttemptNumber int [not null]
+  RequestedBy bigint [not null]
+  Status nvarchar(64) [not null]
+  StartedAtUtc datetime2(3) [null]
+  FinishedAtUtc datetime2(3) [null]
+  LeaseToken uniqueidentifier [null]
+  LeaseExpiresAtUtc datetime2(3) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (FileId, AttemptNumber) [unique]
+    (Id, FileId) [unique]
+  }
+  Note: 'Entrega 1. Registra cada intento, incluso si ya se recibió el mismo archivo. Perfil y archivo pertenecen al mismo SourceSystem. No aplicar dos intentos simultáneos sobre el mismo archivo. Lease con token de cercado para recuperar trabajos interrumpidos. Estados RECEIVED, PROCESSING, COMPLETED, PARTIAL, FAILED, DUPLICATE; DUPLICATE no vuelve a escribir pedidos.'
+}
+
+Table integration.ImportOrderResult {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  RunId bigint [not null]
+  ExternalOrderNumber nvarchar(64) [not null]
+  Status nvarchar(64) [not null, note: 'PENDING, APPLIED, REJECTED, UNCHANGED']
+  OrderRevisionId bigint [null]
+  MessageCode nvarchar(64) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (RunId, ExternalOrderNumber) [unique]
+    (Id, RunId) [unique]
+  }
+  Note: 'Entrega 1. Unidad atómica propuesta: aceptar todas las líneas de un pedido o rechazar ese pedido completo. APPLIED exige revisión vinculada. UNCHANGED referencia la revisión equivalente sin crear otra. Resultados y revisión operativa se confirman en la misma transacción; no perder el vínculo tras una caída.'
+}
+
+Table integration.ImportRow {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  RunId bigint [not null]
+  OrderResultId bigint [null]
+  RecordNumber int [not null]
+  PhysicalLineStart int [not null]
+  PhysicalLineEnd int [not null]
+  RawText nvarchar(max) [not null]
+  ParsedJson nvarchar(max) [null]
+  Status nvarchar(64) [not null]
+  AppliedOrderLineId bigint [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    (RunId, RecordNumber) [unique]
+    (Id, RunId) [unique]
+  }
+  Note: 'Entrega 1. Preserva texto y valores interpretados, incluida la línea física de origen. Conservar ceros iniciales en códigos. CSV entrecomillado puede ocupar varias líneas físicas. No usar número de fila como identidad de la línea del pedido. OrderResult debe pertenecer al mismo Run; AppliedOrderLine solo se informa al aplicar el pedido.'
+}
+
+Table integration.ImportError {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  RunId bigint [not null]
+  RowId bigint [null]
+  FieldName nvarchar(64) [null]
+  Severity nvarchar(64) [not null, note: 'ERROR o WARNING']
+  ErrorCode nvarchar(64) [not null]
+  Message nvarchar(1000) [not null]
+  RawValue nvarchar(240) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  Note: 'Entrega 1. Puede haber varios errores por fila o errores generales del archivo. La fila, cuando exista, debe pertenecer al mismo intento. Los valores se limitan y sanitizan; no exponer rutas internas o credenciales.'
+}
+
+Table operations.SalesOrder {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  SourceSystemId bigint [not null]
+  ExternalOrderNumber nvarchar(64) [not null]
+  CustomerId bigint [not null]
+  CurrentRevisionId bigint [null]
+  Status nvarchar(64) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (SourceSystemId, ExternalOrderNumber) [unique]
+  }
+  Note: 'Entrega 1. Identidad permanente del pedido; sus requisitos se versionan. CurrentRevisionId debe ser revisión del mismo pedido mediante FK compuesta. Crear encabezado y revisión en una transacción; no publicar un pedido sin revisión vigente. Cliente inmutable tras liberar operaciones; el estado resumido no sustituye el avance por línea.'
+}
+
+Table operations.OrderRevision {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  OrderId bigint [not null]
+  RevisionNumber int [not null]
+  BusinessContentHash binary(32) [not null]
+  ExternalRevision nvarchar(64) [null]
+  SourceAsOfUtc datetime2(3) [null]
+  ChangeReason nvarchar(1000) [not null]
+  AcceptedBy bigint [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    (OrderId, RevisionNumber) [unique]
+    (Id, OrderId) [unique]
+  }
+  Note: 'Entrega 1. Instantánea aceptada de los requisitos. Una importación no modifica silenciosamente lo que ya se está ejecutando. Hash de datos normalizados incluye líneas ordenadas, cantidades, destinos y fechas, no metadatos de carga. Si el origen no identifica su versión o fecha, un cambio no se acepta automáticamente solo por haber llegado después. Revisiones aceptadas inmutables. Hash igual a la revisión vigente implica UNCHANGED. Contenido igual a una revisión antigua requiere revisión manual, no retroceder automáticamente.'
+}
+
+Table operations.OrderLine {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  OrderId bigint [not null]
+  ExternalLineKey nvarchar(128) [not null, note: 'Incluye sublínea de origen si existe']
+  IsClosed bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (OrderId, ExternalLineKey) [unique]
+    (Id, OrderId) [unique]
+  }
+  Note: 'Entrega 1. Distingue dos líneas del mismo producto. La clave externa no depende del material ni del orden de las filas. No asumir que material o lote identifica una línea. Una línea omitida en el archivo no se cancela automáticamente; exige semántica de snapshot y autorización. Publicar otra revisión o cambiar compromisos modifica también RowVersion de la línea; los servicios deben bloquear el agregado para mantener coherencia.'
+}
+
+Table operations.OrderLineRevision {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  OrderId bigint [not null]
+  OrderRevisionId bigint [not null]
+  OrderLineId bigint [not null]
+  MaterialId bigint [not null]
+  DeliverySiteId bigint [not null]
+  RequestedUnitId bigint [not null]
+  RequestedQuantity decimal(19,6) [not null]
+  FactorToBase decimal(28,12) [not null]
+  RequiredBaseQuantity decimal(19,6) [not null]
+  RequestedDate date [not null]
+  Priority int [not null]
+  IsCancelled bit [not null]
+  MaterialCodeSnapshot nvarchar(64) [not null]
+  MaterialDescriptionSnapshot nvarchar(240) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    (OrderRevisionId, OrderLineId) [unique]
+    (Id, OrderLineId) [unique]
+  }
+  Note: 'Entrega 1. Demanda comercial y destino concretos; distintas líneas pueden tener diferentes destinos. Pedido de revisión y línea debe coincidir mediante FKs compuestas usando OrderId. Destino pertenece al cliente del pedido. Cantidades > 0; cancelación es explícita, no cantidad negativa. RequiredBaseQuantity = RequestedQuantity × FactorToBase, representable en la escala permitida. Material, destino y unidad base no cambian si existe ejecución. Una sustitución exige otra línea y tratamiento autorizado del pendiente. Para cambiar material o destino sin ejecución, primero cancelar todos los compromisos y tareas previos no ejecutados. Una revisión no redirige tareas existentes de forma implícita.'
+}
+
+Table operations.FulfillmentAllocation {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  OrderLineId bigint [not null]
+  OrderLineRevisionId bigint [not null]
+  WarehouseId bigint [not null]
+  AllocatedBaseQuantity decimal(19,6) [not null]
+  Status nvarchar(64) [not null, note: 'DRAFT, RELEASED, IN_PROGRESS, COMPLETED, CANCELLED']
+  ReleasedAtUtc datetime2(3) [null]
+  ReleasedBy bigint [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  Note: 'Entrega 2. Divide la demanda entre almacenes. Es compromiso de surtido; los viajes se asignan por separado en TripAllocation. No equivale a reserva física. FK compuesta asegura que la revisión corresponde a OrderLineId. Una línea puede dividirse entre almacenes. Una asignación tiene un almacén; sus cantidades pueden distribuirse entre varios viajes mediante TripAllocation. Suma de cantidades no canceladas, incluidas completadas, <= demanda vigente. Cantidad positiva. Liberar exige origen válido, destino, ubicación para cada tarea y plan aprobado cuando se exija ruta antes de Picking. No cancelar una asignación con ejecución neta; reducir/sustituir exige devolver o reasignar cantidades de forma controlada. Nuevas asignaciones usan la revisión vigente no cancelada. Las antiguas conservan su revisión solo si material, destino y unidad base permanecen compatibles y se respetan los límites vigentes. Las jornadas se distribuyen en CapacityBooking sin duplicar AllocatedBaseQuantity. Una cantidad puede tener capacidad de Picking, Packing y carga en días diferentes; no son tres demandas distintas.'
+}
+
+Table planning.DistanceReference {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  OriginAddressId bigint [not null]
+  DestinationAddressId bigint [not null]
+  RoadDistanceKm decimal(12,3) [not null]
+  ReferenceMinutes int [null]
+  SourceDescription nvarchar(240) [not null]
+  MeasuredOn date [not null]
+  ValidUntil date [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    (OriginAddressId, DestinationAddressId, MeasuredOn, SourceDescription) [unique]
+  }
+  Note: 'Entrega 2. Estimación direccional entre dos versiones de dirección, no atributo del cliente. Origen distinto del destino; km >= 0; minutos >= 0; vigencia coherente. A->B no implica B->A. Sin dato se muestra desconocido, nunca cero por defecto. No representa GPS, tráfico en vivo o ruta óptima. Cada tramo del viaje puede conservar la referencia usada.'
+}
+
+Table planning.Carrier {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Name nvarchar(240) [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 2. Empresa responsable del transporte, si el cliente requiere distinguirla. '
+}
+
+Table planning.Trailer {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Registration nvarchar(64) [not null]
+  RegistrationRegion nvarchar(64) [not null]
+  CarrierId bigint [null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+    (RegistrationRegion, Registration) [unique]
+  }
+  Note: 'Entrega 2. Unidad física reutilizable en distintos viajes; un viaje no es el tráiler. Sin capacidad automática de peso/volumen en la primera versión.'
+}
+
+Table planning.Driver {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  DisplayName nvarchar(240) [not null]
+  CarrierId bigint [null]
+  UserId bigint [null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 2. Identidad del conductor; una cuenta opcional permite consultar solo sus viajes. UserId único cuando no es NULL. No almacenar documentos personales innecesarios.'
+}
+
+Table planning.Trip {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  OriginWarehouseId bigint [not null]
+  CurrentRevisionId bigint [null]
+  Status nvarchar(64) [not null, note: 'DRAFT, RELEASED, LOADING, CLOSED, CANCELLED']
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 2. Identidad del recorrido; primera versión con un almacén de salida y varias paradas. FK compuesta garantiza que CurrentRevisionId corresponde al mismo viaje. Viajes con recogidas en varios almacenes durante el trayecto son ampliación futura; hoy se generan viajes separados.'
+}
+
+Table planning.TripRevision {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  TripId bigint [not null]
+  RevisionNumber int [not null]
+  OriginAddressId bigint [not null]
+  PlannedDepartureUtc datetime2(3) [null]
+  PlannedTrailerId bigint [null]
+  PlannedDriverId bigint [null]
+  Status nvarchar(64) [not null, note: 'DRAFT, APPROVED, SUPERSEDED']
+  ApprovedBy bigint [null]
+  ApprovedAtUtc datetime2(3) [null]
+  ChangeReason nvarchar(1000) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (TripId, RevisionNumber) [unique]
+    (Id, TripId) [unique]
+  }
+  Note: 'Entrega 2. Borrador editable hasta aprobación; después es una versión congelada. OriginAddress debe pertenecer al punto del almacén de origen. Aprobar requiere paradas coherentes y sin órdenes repetidos; no se ordena por kilómetros automáticamente. Después de iniciar carga, el plan queda congelado. Replanear antes exige nueva revisión y reasignación atómica de dependencias; nunca cambiar solo CurrentRevisionId.'
+}
+
+Table planning.TripStop {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  TripRevisionId bigint [not null]
+  SequenceNumber int [not null]
+  DeliverySiteId bigint [not null]
+  AddressVersionId bigint [not null]
+  WindowStartUtc datetime2(3) [null]
+  WindowEndUtc datetime2(3) [null]
+  DistanceFromPreviousId bigint [null]
+  Instructions nvarchar(1000) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    (TripRevisionId, SequenceNumber) [unique]
+    (Id, TripRevisionId) [unique]
+  }
+  Note: 'Entrega 2. Una visita concreta. Dos visitas al mismo cliente son dos paradas distintas. Secuencia positiva, sin duplicados; al aprobar, orden consecutivo o normalizado. Dirección pertenece al destino. Ventana inicial < final; ambas nulas o ambas informadas. Distancia corresponde exactamente al tramo anterior, usando origen del viaje para la primera parada. Inmutable cuando su revisión está aprobada.'
+}
+
+Table planning.TripAllocation {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable.']
+  StopId bigint [not null]
+  AllocationId bigint [not null]
+  PlannedBaseQuantity decimal(19,6) [not null]
+  CancelledBaseQuantity decimal(19,6) [not null, note: 'Inicia en cero; liberación de remanente explícita y auditada.']
+  Status nvarchar(64) [not null, note: 'DRAFT, RELEASED, COMPLETED, CANCELLED']
+  CreatedAtUtc datetime2(3) [not null]
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null]
+  indexes {
+    (StopId, AllocationId) [unique]
+  }
+  Note: 'Entrega 2. Relaciona cantidades de una asignación de surtido con una visita concreta. Permite parciales y nuevos viajes sin reescribir el origen del Picking. PlannedBaseQuantity > 0; 0 <= CancelledBaseQuantity <= PlannedBaseQuantity. Compromiso neto = planeado - cancelado. Origen y destino coinciden con el almacén de la asignación y destino de su línea; no asumir que cualquier parada del mismo cliente es equivalente. Suma de compromisos netos por asignación, incluidos viajes completados, <= cantidad asignada. Asignaciones HU activas de esa parada no superan el compromiso neto. Replanear o liberar un parcial solo afecta remanente no cargado ni asignado a HU activa. Liberar primero la asignación de HU si corresponde; no alterar el material ya embarcado. El remanente cancelado de un viaje puede comprometerse en otra parada con un nuevo TripAllocation; Picking, recepción y contenido HU mantienen sus identidades.'
+}
+
+Table warehouse.PickingTask {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  WarehouseId bigint [not null]
+  Code nvarchar(64) [not null]
+  AssignedUserId bigint [null]
+  Status nvarchar(64) [not null, note: 'OPEN, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED']
+  StartedAtUtc datetime2(3) [null]
+  CompletedAtUtc datetime2(3) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 2. Trabajo asignable dentro de un único almacén. Cambiar operador no cambia confirmaciones previas; reasignaciones quedan auditadas. Completar requiere que todas las líneas estén satisfechas o su remanente haya sido tratado explícitamente.'
+}
+
+Table warehouse.PickingTaskLine {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  TaskId bigint [not null]
+  AllocationId bigint [not null]
+  SourceLocationId bigint [not null]
+  LotId bigint [null]
+  PlannedBaseQuantity decimal(19,6) [not null]
+  Status nvarchar(64) [not null, note: 'OPEN, IN_PROGRESS, COMPLETED, CANCELLED']
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  Note: 'Entrega 2. Indica asignación de surtido, posición y lote concretos. Separar por origen o lote cuando se divida el surtido. Tarea, ubicación y asignación pertenecen al mismo almacén; ubicación habilitada para Picking. Lote pertenece al material del requisito; obligatorio cuando lo exige Material. Total de líneas activas/completadas por asignación <= cantidad asignada; positivas. Origen/lote/asignación no se editan tras confirmar; corregir requiere reversión y línea nueva. CANCELLED solo si no existe confirmación neta; cambiar cantidades nunca puede dejarlas por debajo de lo ya confirmado.'
+}
+
+Table warehouse.PickConfirmation {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  TaskLineId bigint [not null]
+  BaseQuantity decimal(19,6) [not null]
+  ActorUserId bigint [not null]
+  OperationId bigint [not null]
+  CaptureMethod nvarchar(64) [not null, note: 'MANUAL, CAMERA, KEYBOARD_SCANNER']
+  ObservedLocationCode nvarchar(64) [null]
+  ObservedMaterialCode nvarchar(128) [null]
+  OccurredAtUtc datetime2(3) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  Note: 'Entrega 2. Hecho registrado e inmutable; cada confirmación aporta una cantidad. Cantidad > 0; suma neta por línea <= planeada; respetar escala de unidad base. Validar material, ubicación, lote, usuario, estado y bloqueos en el servidor. Tiempo efectivo oficial es del servidor; datos capturados no garantizan detección física.'
+}
+
+Table warehouse.PickReversal {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  PickConfirmationId bigint [not null]
+  ActorUserId bigint [not null]
+  OperationId bigint [not null]
+  Reason nvarchar(1000) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    PickConfirmationId [unique]
+  }
+  Note: 'Entrega 2. Reversión completa de una confirmación, conservando el original. Solo si no tiene recepción neta en Packing. Una reversión parcial se representa revirtiendo y registrando la parte correcta, todo en una transacción. No reversar una reversión ni editar cantidades originales.'
+}
+
+Table warehouse.PackingReceipt {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  PickConfirmationId bigint [not null]
+  PackingLocationId bigint [not null]
+  BaseQuantity decimal(19,6) [not null]
+  ReceivedBy bigint [not null]
+  OperationId bigint [not null]
+  ReceivedAtUtc datetime2(3) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  Note: 'Entrega 3. Cantidad efectivamente recibida desde una confirmación de Picking; admite recepciones parciales. Cantidad > 0; recepciones netas <= confirmación de Picking no revertida. Puesto PACKING del mismo almacén. Daños/faltantes generan incidencia, no recepción ficticia.'
+}
+
+Table warehouse.ReceiptReversal {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  ReceiptId bigint [not null]
+  ActorUserId bigint [not null]
+  OperationId bigint [not null]
+  Reason nvarchar(1000) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    ReceiptId [unique]
+  }
+  Note: 'Entrega 3. Corrige una recepción sin borrar su rastro. Reversión completa y solo si la recepción no tiene contenido neto en HU.'
+}
+
+Table warehouse.HandlingUnit {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  TypeId bigint [not null]
+  WarehouseId bigint [not null]
+  DeliverySiteId bigint [not null]
+  CurrentLocationId bigint [null]
+  Status nvarchar(64) [not null, note: 'OPEN, PACKED, STAGED, LOADED, SHIPPED, VOID']
+  PackedAtUtc datetime2(3) [null]
+  PackedBy bigint [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 3. Contenedor operativo identificado de forma única, con material trazable. Código global en esta base, único para siempre; no reutilizar una HU embarcada. Una HU puede mezclar líneas/materiales del mismo destino y almacén; no destinos distintos en la primera versión. Location del mismo almacén; requerida antes de cargar, nula cuando esté en tráiler. La asignación de carga registra dónde está entonces. El contenido se calcula desde HandlingUnitItem menos PackingReversal. Congelado después de confirmar Packing hasta reapertura autorizada; no modificar HU cargada/embarcada.'
+}
+
+Table warehouse.HandlingUnitItem {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  HandlingUnitId bigint [not null]
+  ReceiptId bigint [not null]
+  BaseQuantity decimal(19,6) [not null]
+  OperationId bigint [not null]
+  PackedBy bigint [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  Note: 'Entrega 3. Cada aporte proviene de una recepción; permite dividir una recepción entre varias HU. Cantidad positiva; aportes no revertidos por recepción <= recepción neta. Almacén y destino de HU deben coincidir con el pedido/recepción. Material y lote se derivan de la cadena, sin duplicarlos de forma contradictoria. Admite varios aportes de la misma recepción; cada uno tiene identidad propia y puede revertirse una sola vez.'
+}
+
+Table warehouse.PackingReversal {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  HandlingUnitItemId bigint [not null]
+  ActorUserId bigint [not null]
+  OperationId bigint [not null]
+  Reason nvarchar(1000) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    HandlingUnitItemId [unique]
+  }
+  Note: 'Entrega 3. Retira completamente un aporte de HU; permite reempacar manteniendo el origen. Reversión completa; HU abierta, sin asignación activa de embarque y con autorización si se reabrió. Para dividir/cambiar de HU, revertir el aporte y crear los nuevos aportes en una sola transacción; conservar cantidad.'
+}
+
+Table warehouse.HandlingUnitMovement {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  HandlingUnitId bigint [not null]
+  FromLocationId bigint [null]
+  ToLocationId bigint [not null]
+  ActorUserId bigint [not null]
+  OperationId bigint [not null]
+  MovedAtUtc datetime2(3) [not null]
+  Reason nvarchar(1000) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  Note: 'Entrega 3. Historial dentro del almacén; no pretende ser un kardex completo de existencias. Ubicaciones del mismo almacén; From coincide con posición actual. Solo la colocación inicial puede tener origen nulo. No mover a ubicación inactiva, a sí misma o HU cargada. Tipo STAGING para pasar a preembarque. Guardar evento y actualizar CurrentLocation en la misma transacción. Carga/descarga se registra en LoadEvent, no como traslado a un almacén ficticio.'
+}
+
+Table shipping.Shipment {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  TripId bigint [not null]
+  TripRevisionId bigint [not null]
+  TrailerId bigint [not null]
+  DriverId bigint [null]
+  DockLocationId bigint [null]
+  Status nvarchar(64) [not null, note: 'OPEN, LOADING, CLOSED, CANCELLED']
+  SealNumber nvarchar(64) [null]
+  OpenedAtUtc datetime2(3) [not null]
+  ClosedAtUtc datetime2(3) [null]
+  CancelledAtUtc datetime2(3) [null, note: 'Solo embarque cancelado. Junto a ClosedAtUtc define ocupación activa de tráiler.']
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    TripId [unique]
+    (Id, TripRevisionId) [unique]
+  }
+  Note: 'Entrega 4. Ejecución física del plan aprobado, desde un almacén. Un viaje inicial tiene un solo embarque. Revisión pertenece al viaje y está aprobada. Andén DOCK del almacén de salida. Tráiler no puede estar en dos embarques OPEN/LOADING; unicidad de ocupación y control transaccional. Requisito de sello/chofer/andén se confirma con el negocio; no exigirlo inventando reglas. Cierre congela asignaciones, contenido y plan. No reapertura inicial; una corrección posterior requiere proceso específico. OPEN/LOADING: ClosedAtUtc y CancelledAtUtc nulos. CLOSED: solo ClosedAtUtc informado. CANCELLED: solo CancelledAtUtc informado; sin HU activa/cargada. CHECK local vincula fechas y estados. Un embarque cancelado no se reutiliza: una nueva salida tendrá otro Trip y otro Shipment en esta primera versión.'
+}
+
+Table shipping.ShipmentUnit {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  ShipmentId bigint [not null]
+  TripRevisionId bigint [not null]
+  StopId bigint [not null]
+  HandlingUnitId bigint [not null]
+  Status nvarchar(64) [not null, note: 'ASSIGNED, LOADED, DISPATCHED, RELEASED']
+  AssignedBy bigint [not null]
+  AssignedAtUtc datetime2(3) [not null]
+  ReleasedAtUtc datetime2(3) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  Note: 'Entrega 4. Conserva asignaciones previas sin permitir doble asignación activa. FKs compuestas garantizan misma revisión para embarque y parada. HU única entre filas con ReleasedAtUtc NULL. Una HU DISPATCHED conserva NULL para impedir reutilización. HU empacada/liberada, mismo almacén y destino; cada aporte debe tener compromiso suficiente en TripAllocation para esa parada. RELEASED exige fecha y HU no cargada; asignar a otro viaje requiere registrar liberación y validar plan nuevamente.'
+}
+
+Table shipping.LoadEvent {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  ShipmentUnitId bigint [not null]
+  EventType nvarchar(64) [not null, note: 'LOAD, UNLOAD']
+  WarehouseLocationId bigint [not null]
+  ActorUserId bigint [not null]
+  OperationId bigint [not null]
+  OccurredAtUtc datetime2(3) [not null]
+  Reason nvarchar(1000) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  Note: 'Entrega 4. Hechos que cambian la ubicación entre el almacén y el tráiler; descarga aquí es antes de salida, no entrega al cliente. LOAD exige ASSIGNED y ubicación real coincidente; UNLOAD exige LOADED y destino válido del mismo almacén. No repetir LOAD sin UNLOAD, ni descargar un embarque cerrado. La transacción actualiza HU y ShipmentUnit. Carga inversa según secuencia de paradas, con excepciones autorizadas; sin optimización física automática.'
+}
+
+Table shipping.ShipmentClosure {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  ShipmentId bigint [not null]
+  ClosedBy bigint [not null]
+  OperationId bigint [not null]
+  ClosedAtUtc datetime2(3) [not null]
+  ManifestJson nvarchar(max) [not null, note: 'Instantánea exportable de HU, contenido, destinos, conductor, unidad y sello']
+  ManifestHash binary(32) [not null]
+  IsPartial bit [not null]
+  PartialApprovalId bigint [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  indexes {
+    ShipmentId [unique]
+  }
+  Note: 'Entrega 4. Instantánea histórica de lo que se declaró cargado al cerrar. ManifestJson es copia histórica; relaciones operativas siguen siendo la fuente de integridad. No cerrar con HU asignadas sin cargar, incidencias/bloqueos impeditivos o pendientes sin resolución. Cierre parcial, si se autoriza, conserva remanente en otro plan; no marca entregado lo que no salió. CLOSED/SHIPPED significa salida del almacén, no entrega confirmada al cliente.'
+}
+
+Table quality.IncidentType {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  Code nvarchar(64) [not null]
+  Name nvarchar(240) [not null]
+  DefaultSeverity nvarchar(64) [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  indexes {
+    Code [unique]
+  }
+  Note: 'Entrega 1. Catálogo de causas operativas. '
+}
+
+Table quality.Incident {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  TypeId bigint [not null]
+  ImportRunId bigint [null]
+  OrderLineId bigint [null]
+  TaskLineId bigint [null]
+  HandlingUnitId bigint [null, note: 'Agregar esta columna y FK en la entrega 3, cuando exista la tabla destino.']
+  ShipmentId bigint [null, note: 'Agregar esta columna y FK en la entrega 4, cuando exista la tabla destino.']
+  TripId bigint [null]
+  ReportedBy bigint [not null]
+  Severity nvarchar(64) [not null]
+  Status nvarchar(64) [not null, note: 'OPEN, INVESTIGATING, RESOLVED, CANCELLED']
+  Description nvarchar(1000) [not null]
+  ResolvedAtUtc datetime2(3) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  Note: 'Entrega 2. Una incidencia tiene un objeto principal con FK real; otros datos se obtienen siguiendo sus relaciones. Exactamente uno de los seis FKs de contexto informado. Evita EntityType/EntityId sin integridad referencial. Resolver una incidencia no elimina un bloqueo automáticamente ni corrige cantidades por sí solo.'
+}
+
+Table quality.IncidentAction {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  IncidentId bigint [not null]
+  ActorUserId bigint [not null]
+  ActionCode nvarchar(64) [not null]
+  Comment nvarchar(1000) [not null]
+  OperationId bigint [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  Note: 'Entrega 2. Comentarios, diagnóstico y resolución conservados cronológicamente. '
+}
+
+Table quality.Hold {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  OrderLineId bigint [null]
+  HandlingUnitId bigint [null, note: 'Agregar esta columna y FK en la entrega 3, cuando exista la tabla destino.']
+  ShipmentId bigint [null, note: 'Agregar esta columna y FK en la entrega 4, cuando exista la tabla destino.']
+  IncidentId bigint [null]
+  Reason nvarchar(1000) [not null]
+  PlacedBy bigint [not null]
+  ReleasedAtUtc datetime2(3) [null]
+  ReleasedBy bigint [null]
+  ReleaseReason nvarchar(1000) [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  Note: 'Entrega 2. Bloquea una línea, una HU o un embarque sin confundir condición con etapa del proceso. Exactamente uno de los tres objetos informado; puede haber varios bloqueos simultáneos. Liberación exige usuario, motivo y fecha juntos. No borrar el bloqueo. Un bloqueo de línea se propaga a sus asignaciones, Picking y HU; HU mixta bloquea su carga completa hasta resolver/separar.'
+}
+
+Table quality.Approval {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  IncidentId bigint [null]
+  OrderLineId bigint [null]
+  HandlingUnitId bigint [null, note: 'Agregar esta columna y FK en la entrega 3, cuando exista la tabla destino.']
+  ShipmentId bigint [null, note: 'Agregar esta columna y FK en la entrega 4, cuando exista la tabla destino.']
+  TripId bigint [null]
+  ActionCode nvarchar(64) [not null]
+  PayloadHash binary(32) [not null]
+  ReviewPayloadJson nvarchar(max) [not null, note: 'Instantánea legible de los parámetros sujetos a aprobación; esquema estricto por ActionCode, sin secretos.']
+  ExpectedVersion binary(8) [not null]
+  RequestedBy bigint [not null]
+  DecidedBy bigint [null]
+  Decision nvarchar(64) [not null, note: 'PENDING, APPROVED, REJECTED, EXPIRED']
+  DecidedAtUtc datetime2(3) [null]
+  ExpiresAtUtc datetime2(3) [null]
+  Reason nvarchar(1000) [not null]
+  ExecutedOperationId bigint [null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Control de edición concurrente; no es fecha.']
+  Note: 'Entrega 2. Autorización concreta y consumible, no permiso general para saltarse validaciones. Exactamente uno de OrderLine, HU, Shipment o Trip; Incident es contexto adicional opcional. Versión y hash fijan objeto y parámetros aprobados; cualquier cambio invalida la autorización. Ejecutar solo APPROVED, vigente, permiso actual y no consumida; ExecutedOperationId único cuando no nulo. Separación solicitante/aprobador se valida con el negocio; nunca asumir que toda excepción puede aprobarla cualquier supervisor. ReviewPayloadJson y PayloadHash coinciden mediante serialización canónica; la aplicación muestra exactamente estos parámetros al aprobador.'
+}
+
+Table audit.AuditEvent {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable; identity propuesto.']
+  OperationId bigint [null]
+  ActorUserId bigint [null]
+  ActionCode nvarchar(64) [not null]
+  EntityType nvarchar(64) [not null]
+  EntityKey nvarchar(128) [not null]
+  Outcome nvarchar(64) [not null]
+  BeforeJson nvarchar(max) [null]
+  AfterJson nvarchar(max) [null]
+  Reason nvarchar(1000) [null]
+  CorrelationId uniqueidentifier [not null]
+  OccurredAtUtc datetime2(3) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en el servidor.']
+  Note: 'Entrega 1. Registro de acciones y resultados para investigación; no sustituye las tablas operativas. EntityType/EntityKey es referencia descriptiva de auditoría, no FK ni fuente para decidir una operación. Acciones exitosas y auditoría se confirman juntas. Intentos fallidos se registran después del rollback en un registro separado. Sin contraseñas, tokens ni cadenas de conexión. Acceso restringido y retención por acordar. Solo anexar con cuenta operativa. No afirmar inmutabilidad absoluta frente a administradores de SQL Server.'
+}
+
+Table planning.CapacityPool {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable.']
+  WarehouseId bigint [not null]
+  Code nvarchar(64) [not null]
+  StageCode nvarchar(64) [not null, note: 'PICKING, PACKING o LOADING']
+  CapacityBasis nvarchar(64) [not null, note: 'BASE_QUANTITY o STANDARD_MINUTES']
+  CapacityUnitId bigint [null, note: 'Obligatoria solo en BASE_QUANTITY']
+  TimeZoneId nvarchar(240) [not null]
+  IsActive bit [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Versión de edición, no fecha.']
+  indexes {
+    (WarehouseId, Code) [unique]
+    (WarehouseId, StageCode) [unique]
+  }
+  Note: 'Entrega 2. Define el grupo de trabajo cuya capacidad se comparte entre pedidos. No es inventario, capacidad del tráiler ni producción industrial. Primera versión: un pool por almacén/proceso. Dos pedidos compiten por la misma capacidad; no asignar 600 a cada pedido. BASE_QUANTITY exige CapacityUnitId; STANDARD_MINUTES exige NULL. La base/unidad no se cambia tras tener historia. Productos en unidades incompatibles o con esfuerzo muy distinto requieren estándares en minutos; no sumar KG y PZA. Si el personal se comparte entre procesos, repartir explícitamente su tiempo/capacidad; no contabilizar la misma jornada completa en cada pool.'
+}
+
+Table planning.CapacityDay {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable.']
+  PoolId bigint [not null]
+  WorkDate date [not null]
+  WindowStartUtc datetime2(3) [null]
+  WindowEndUtc datetime2(3) [null]
+  BaseCapacity decimal(19,6) [not null]
+  ExtraCapacity decimal(19,6) [not null]
+  UnavailableCapacity decimal(19,6) [not null]
+  Status nvarchar(64) [not null, note: 'OPEN o CLOSED']
+  ClosedAtUtc datetime2(3) [null]
+  ChangeReason nvarchar(1000) [not null]
+  ChangedBy bigint [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Versión de edición, no fecha.']
+  indexes {
+    (PoolId, WorkDate) [unique]
+    (Id, PoolId) [unique]
+  }
+  Note: 'Entrega 2. Una jornada local con capacidad propia. Fines de semana, festivos, ausencias y horas extra se representan explícitamente. Capacidad efectiva = BaseCapacity + ExtraCapacity - UnavailableCapacity. Componentes no negativos; indisponible no supera base más extra. Capacidad efectiva positiva requiere inicio y fin y fin > inicio; fecha local de inicio coincide con WorkDate. Calendario faltante es desconocido, no ilimitado. Un día no laborable conserva fila con capacidad cero. No trasladar capacidad no usada al siguiente día. Cambios de capacidad requieren permiso, motivo, RowVersion y auditoría. Si bajan por debajo de compromisos existentes, mostrar sobrecarga y replanear antes de aprobar más trabajo. CLOSED exige ClosedAtUtc; OPEN exige NULL. Cerrar no marca pedidos completos ni borra reservas pendientes. La capacidad es una restricción de planeación, no motivo para ocultar ejecución física ya ocurrida. Desviaciones se registran y revisan.'
+}
+
+Table planning.WorkStandardVersion {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable.']
+  PoolId bigint [not null]
+  MaterialId bigint [not null]
+  VersionNumber int [not null]
+  CapacityPerBaseUnit decimal(28,12) [not null]
+  ValidFromUtc datetime2(3) [not null]
+  Description nvarchar(240) [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en servidor.']
+  indexes {
+    (PoolId, MaterialId, VersionNumber) [unique]
+    (Id, PoolId) [unique]
+  }
+  Note: 'Entrega 2. Factor congelado para convertir cantidad base de material en unidades de capacidad. Factor > 0 y versión positiva. En BASE_QUANTITY exige unidad base del material igual a la unidad del pool y factor 1. En STANDARD_MINUTES el factor expresa minutos estándar por unidad base, no duración real medida. Nueva productividad crea otra versión; reservas existentes conservan el factor aprobado. Usar siempre conversiones decimales sin redondeo oculto. Capacidad diaria disponible y estándar deben usar la misma unidad de carga de trabajo.'
+}
+
+Table planning.CapacityBooking {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable.']
+  AllocationId bigint [not null]
+  PoolId bigint [not null]
+  CapacityDayId bigint [not null]
+  WorkStandardVersionId bigint [not null]
+  PlannedBaseQuantity decimal(19,6) [not null]
+  ReleasedBaseQuantity decimal(19,6) [not null]
+  RescheduledFromId bigint [null]
+  Status nvarchar(64) [not null, note: 'DRAFT, COMMITTED, COMPLETED, CANCELLED']
+  ApprovedBy bigint [null]
+  ApprovedAtUtc datetime2(3) [null]
+  ReleaseReason nvarchar(1000) [null]
+  LastOperationId bigint [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en servidor.']
+  UpdatedAtUtc datetime2(3) [not null]
+  RowVersion rowversion [not null, note: 'Versión de edición, no fecha.']
+  indexes {
+    (Id, PoolId) [unique]
+  }
+  Note: 'Entrega 2. Reserva una porción de una asignación de surtido para una jornada y proceso, manteniendo la identidad del pedido. FKs compuestas aseguran mismo pool para día y estándar. Material y almacén deben corresponder a la asignación. PlannedBaseQuantity > 0; 0 <= ReleasedBaseQuantity <= PlannedBaseQuantity. Tras aprobar, no editar cantidad original: liberar pendiente y crear otra reserva. DRAFT no consume capacidad. Aprobar exige fecha abierta, cupo, elegibilidad y comprobación atómica de todas las reservas afectadas. Por asignación y proceso, suma de cantidades planeadas menos liberadas de reservas COMMITTED/COMPLETED <= cantidad asignada. No sumar procesos diferentes entre sí. COMPLETED conserva su cantidad y consumo histórico. CANCELLED exige liberar toda la cantidad y no tener ejecución buena neta. No liberar cantidad ejecutada buena ni moverla de fecha. Reprogramar solo el restante, con liberación y nueva reserva en la misma transacción. RescheduledFromId apunta a una reserva anterior de la misma asignación y proceso; sin ciclos; suma de cantidades iniciales de hijas no supera lo liberado del origen. Un faltante semanal sigue siendo el mismo OrderLine/Allocation. No crear un nuevo pedido ni volver a sumar su demanda. La fecha de esta reserva es operativa. No sustituye la fecha solicitada del pedido ni la fecha prometida de entrega al cliente.'
+}
+
+Table planning.CapacityExecution {
+  Id bigint [pk, increment, not null, note: 'Identificador interno estable.']
+  BookingId bigint [not null]
+  PoolId bigint [not null]
+  ActualCapacityDayId bigint [not null]
+  PickConfirmationId bigint [null]
+  HandlingUnitItemId bigint [null, note: 'Agregar esta columna y FK en entrega 3']
+  LoadEventId bigint [null, note: 'Agregar esta columna y FK en entrega 4']
+  BaseQuantity decimal(19,6) [not null]
+  UsedStandardCapacity decimal(19,6) [not null]
+  OperationId bigint [not null]
+  CreatedAtUtc datetime2(3) [not null, note: 'Momento de registro en servidor.']
+  Note: 'Entrega 2. Relaciona trabajo registrado con la reserva y con el día real de ejecución, aunque haya ocurrido después de lo planeado. FKs compuestas aseguran mismo pool en reserva y jornada real. El día real corresponde al momento del hecho, no se retrofecha para ocultar atraso. Contexto PICKING: solo PickConfirmationId. PACKING: solo HandlingUnitItemId. LOADING: LoadEventId de tipo LOAD y HandlingUnitItemId. Validar CHECK de combinación y proceso del pool. El hecho pertenece a la misma asignación/material/almacén; en carga, el aporte HU debe estar dentro de la HU del LoadEvent. BaseQuantity > 0; suma de enlaces a un hecho (o aporte dentro de LOAD) no supera su cantidad. Un hecho puede dividirse entre reservas compatibles sin contabilizarse dos veces. UsedStandardCapacity = BaseQuantity por factor congelado de la reserva. Es carga estándar consumida, no medición automática de minutos de operario. La ejecución buena se deriva del hecho y sus reversiones. Una reversión de negocio no devuelve tiempo de trabajo consumido; reempaque/retrabajo consume capacidad adicional. La ejecución reduce cantidad pendiente de su reserva y se carga a ActualCapacityDayId. No sumar reserva original completa más todo lo ejecutado. Insertar junto con el hecho operativo y resultado idempotente. Un reintento no crea otro enlace ni vuelve a consumir cupo. No editar/borrar el consumo histórico. Si se corrige atribución de tiempo o capacidad, definir ajuste auditable específico antes de implementarlo.'
+}
+
+Ref: security.UserRole.UserId > security.AppUser.Id
+Ref: security.UserRole.RoleId > security.Role.Id
+Ref: security.RolePermission.RoleId > security.Role.Id
+Ref: security.RolePermission.PermissionId > security.Permission.Id
+Ref: security.UserWarehouse.UserId > security.AppUser.Id
+Ref: security.UserWarehouse.WarehouseId > catalog.Warehouse.Id
+Ref: platform.OperationRequest.ActorUserId > security.AppUser.Id
+Ref: catalog.PointAddress.PointId > catalog.LogisticsPoint.Id
+Ref: catalog.Warehouse.PointId > catalog.LogisticsPoint.Id
+Ref: catalog.Location.WarehouseId > catalog.Warehouse.Id
+Ref: catalog.DeliverySite.CustomerId > catalog.Customer.Id
+Ref: catalog.DeliverySite.PointId > catalog.LogisticsPoint.Id
+Ref: catalog.DeliveryWindow.DeliverySiteId > catalog.DeliverySite.Id
+Ref: catalog.Material.BaseUnitId > catalog.UnitOfMeasure.Id
+Ref: catalog.MaterialUnitConversion.MaterialId > catalog.Material.Id
+Ref: catalog.MaterialUnitConversion.FromUnitId > catalog.UnitOfMeasure.Id
+Ref: catalog.MaterialIdentifier.MaterialId > catalog.Material.Id
+Ref: catalog.MaterialIdentifier.UnitId > catalog.UnitOfMeasure.Id
+Ref: catalog.MaterialLot.MaterialId > catalog.Material.Id
+Ref: catalog.MaterialLocation.MaterialId > catalog.Material.Id
+Ref: catalog.MaterialLocation.LocationId > catalog.Location.Id
+Ref: integration.MappingProfileVersion.SourceSystemId > integration.SourceSystem.Id
+Ref: integration.MappingField.ProfileVersionId > integration.MappingProfileVersion.Id
+Ref: integration.ImportedFile.SourceSystemId > integration.SourceSystem.Id
+Ref: integration.ImportedFile.UploadedBy > security.AppUser.Id
+Ref: integration.ImportRun.FileId > integration.ImportedFile.Id
+Ref: integration.ImportRun.ProfileVersionId > integration.MappingProfileVersion.Id
+Ref: integration.ImportRun.RequestedBy > security.AppUser.Id
+Ref: integration.ImportOrderResult.RunId > integration.ImportRun.Id
+Ref: integration.ImportOrderResult.OrderRevisionId > operations.OrderRevision.Id
+Ref: integration.ImportRow.RunId > integration.ImportRun.Id
+Ref: integration.ImportRow.AppliedOrderLineId > operations.OrderLine.Id
+Ref: integration.ImportError.RunId > integration.ImportRun.Id
+Ref: operations.SalesOrder.SourceSystemId > integration.SourceSystem.Id
+Ref: operations.SalesOrder.CustomerId > catalog.Customer.Id
+Ref: operations.OrderRevision.OrderId > operations.SalesOrder.Id
+Ref: operations.OrderRevision.AcceptedBy > security.AppUser.Id
+Ref: operations.OrderLine.OrderId > operations.SalesOrder.Id
+Ref: operations.OrderLineRevision.OrderId > operations.SalesOrder.Id
+Ref: operations.OrderLineRevision.MaterialId > catalog.Material.Id
+Ref: operations.OrderLineRevision.DeliverySiteId > catalog.DeliverySite.Id
+Ref: operations.OrderLineRevision.RequestedUnitId > catalog.UnitOfMeasure.Id
+Ref: operations.FulfillmentAllocation.OrderLineId > operations.OrderLine.Id
+Ref: operations.FulfillmentAllocation.WarehouseId > catalog.Warehouse.Id
+Ref: operations.FulfillmentAllocation.ReleasedBy > security.AppUser.Id
+Ref: planning.DistanceReference.OriginAddressId > catalog.PointAddress.Id
+Ref: planning.DistanceReference.DestinationAddressId > catalog.PointAddress.Id
+Ref: planning.Trailer.CarrierId > planning.Carrier.Id
+Ref: planning.Driver.CarrierId > planning.Carrier.Id
+Ref: planning.Driver.UserId > security.AppUser.Id
+Ref: planning.Trip.OriginWarehouseId > catalog.Warehouse.Id
+Ref: planning.TripRevision.TripId > planning.Trip.Id
+Ref: planning.TripRevision.OriginAddressId > catalog.PointAddress.Id
+Ref: planning.TripRevision.PlannedTrailerId > planning.Trailer.Id
+Ref: planning.TripRevision.PlannedDriverId > planning.Driver.Id
+Ref: planning.TripRevision.ApprovedBy > security.AppUser.Id
+Ref: planning.TripStop.TripRevisionId > planning.TripRevision.Id
+Ref: planning.TripStop.DeliverySiteId > catalog.DeliverySite.Id
+Ref: planning.TripStop.AddressVersionId > catalog.PointAddress.Id
+Ref: planning.TripStop.DistanceFromPreviousId > planning.DistanceReference.Id
+Ref: planning.TripAllocation.StopId > planning.TripStop.Id
+Ref: planning.TripAllocation.AllocationId > operations.FulfillmentAllocation.Id
+Ref: warehouse.PickingTask.WarehouseId > catalog.Warehouse.Id
+Ref: warehouse.PickingTask.AssignedUserId > security.AppUser.Id
+Ref: warehouse.PickingTaskLine.TaskId > warehouse.PickingTask.Id
+Ref: warehouse.PickingTaskLine.AllocationId > operations.FulfillmentAllocation.Id
+Ref: warehouse.PickingTaskLine.SourceLocationId > catalog.Location.Id
+Ref: warehouse.PickingTaskLine.LotId > catalog.MaterialLot.Id
+Ref: warehouse.PickConfirmation.TaskLineId > warehouse.PickingTaskLine.Id
+Ref: warehouse.PickConfirmation.ActorUserId > security.AppUser.Id
+Ref: warehouse.PickConfirmation.OperationId > platform.OperationRequest.Id
+Ref: warehouse.PickReversal.PickConfirmationId > warehouse.PickConfirmation.Id
+Ref: warehouse.PickReversal.ActorUserId > security.AppUser.Id
+Ref: warehouse.PickReversal.OperationId > platform.OperationRequest.Id
+Ref: warehouse.PackingReceipt.PickConfirmationId > warehouse.PickConfirmation.Id
+Ref: warehouse.PackingReceipt.PackingLocationId > catalog.Location.Id
+Ref: warehouse.PackingReceipt.ReceivedBy > security.AppUser.Id
+Ref: warehouse.PackingReceipt.OperationId > platform.OperationRequest.Id
+Ref: warehouse.ReceiptReversal.ReceiptId > warehouse.PackingReceipt.Id
+Ref: warehouse.ReceiptReversal.ActorUserId > security.AppUser.Id
+Ref: warehouse.ReceiptReversal.OperationId > platform.OperationRequest.Id
+Ref: warehouse.HandlingUnit.TypeId > catalog.HandlingUnitType.Id
+Ref: warehouse.HandlingUnit.WarehouseId > catalog.Warehouse.Id
+Ref: warehouse.HandlingUnit.DeliverySiteId > catalog.DeliverySite.Id
+Ref: warehouse.HandlingUnit.CurrentLocationId > catalog.Location.Id
+Ref: warehouse.HandlingUnit.PackedBy > security.AppUser.Id
+Ref: warehouse.HandlingUnitItem.HandlingUnitId > warehouse.HandlingUnit.Id
+Ref: warehouse.HandlingUnitItem.ReceiptId > warehouse.PackingReceipt.Id
+Ref: warehouse.HandlingUnitItem.OperationId > platform.OperationRequest.Id
+Ref: warehouse.HandlingUnitItem.PackedBy > security.AppUser.Id
+Ref: warehouse.PackingReversal.HandlingUnitItemId > warehouse.HandlingUnitItem.Id
+Ref: warehouse.PackingReversal.ActorUserId > security.AppUser.Id
+Ref: warehouse.PackingReversal.OperationId > platform.OperationRequest.Id
+Ref: warehouse.HandlingUnitMovement.HandlingUnitId > warehouse.HandlingUnit.Id
+Ref: warehouse.HandlingUnitMovement.FromLocationId > catalog.Location.Id
+Ref: warehouse.HandlingUnitMovement.ToLocationId > catalog.Location.Id
+Ref: warehouse.HandlingUnitMovement.ActorUserId > security.AppUser.Id
+Ref: warehouse.HandlingUnitMovement.OperationId > platform.OperationRequest.Id
+Ref: shipping.Shipment.TripId > planning.Trip.Id
+Ref: shipping.Shipment.TrailerId > planning.Trailer.Id
+Ref: shipping.Shipment.DriverId > planning.Driver.Id
+Ref: shipping.Shipment.DockLocationId > catalog.Location.Id
+Ref: shipping.ShipmentUnit.TripRevisionId > planning.TripRevision.Id
+Ref: shipping.ShipmentUnit.HandlingUnitId > warehouse.HandlingUnit.Id
+Ref: shipping.ShipmentUnit.AssignedBy > security.AppUser.Id
+Ref: shipping.LoadEvent.ShipmentUnitId > shipping.ShipmentUnit.Id
+Ref: shipping.LoadEvent.WarehouseLocationId > catalog.Location.Id
+Ref: shipping.LoadEvent.ActorUserId > security.AppUser.Id
+Ref: shipping.LoadEvent.OperationId > platform.OperationRequest.Id
+Ref: shipping.ShipmentClosure.ShipmentId > shipping.Shipment.Id
+Ref: shipping.ShipmentClosure.ClosedBy > security.AppUser.Id
+Ref: shipping.ShipmentClosure.OperationId > platform.OperationRequest.Id
+Ref: shipping.ShipmentClosure.PartialApprovalId > quality.Approval.Id
+Ref: quality.Incident.TypeId > quality.IncidentType.Id
+Ref: quality.Incident.ImportRunId > integration.ImportRun.Id
+Ref: quality.Incident.OrderLineId > operations.OrderLine.Id
+Ref: quality.Incident.TaskLineId > warehouse.PickingTaskLine.Id
+Ref: quality.Incident.HandlingUnitId > warehouse.HandlingUnit.Id
+Ref: quality.Incident.ShipmentId > shipping.Shipment.Id
+Ref: quality.Incident.TripId > planning.Trip.Id
+Ref: quality.Incident.ReportedBy > security.AppUser.Id
+Ref: quality.IncidentAction.IncidentId > quality.Incident.Id
+Ref: quality.IncidentAction.ActorUserId > security.AppUser.Id
+Ref: quality.IncidentAction.OperationId > platform.OperationRequest.Id
+Ref: quality.Hold.OrderLineId > operations.OrderLine.Id
+Ref: quality.Hold.HandlingUnitId > warehouse.HandlingUnit.Id
+Ref: quality.Hold.ShipmentId > shipping.Shipment.Id
+Ref: quality.Hold.IncidentId > quality.Incident.Id
+Ref: quality.Hold.PlacedBy > security.AppUser.Id
+Ref: quality.Hold.ReleasedBy > security.AppUser.Id
+Ref: quality.Approval.IncidentId > quality.Incident.Id
+Ref: quality.Approval.OrderLineId > operations.OrderLine.Id
+Ref: quality.Approval.HandlingUnitId > warehouse.HandlingUnit.Id
+Ref: quality.Approval.ShipmentId > shipping.Shipment.Id
+Ref: quality.Approval.TripId > planning.Trip.Id
+Ref: quality.Approval.RequestedBy > security.AppUser.Id
+Ref: quality.Approval.DecidedBy > security.AppUser.Id
+Ref: quality.Approval.ExecutedOperationId > platform.OperationRequest.Id
+Ref: audit.AuditEvent.OperationId > platform.OperationRequest.Id
+Ref: audit.AuditEvent.ActorUserId > security.AppUser.Id
+Ref: planning.CapacityPool.WarehouseId > catalog.Warehouse.Id
+Ref: planning.CapacityPool.CapacityUnitId > catalog.UnitOfMeasure.Id
+Ref: planning.CapacityDay.PoolId > planning.CapacityPool.Id
+Ref: planning.CapacityDay.ChangedBy > security.AppUser.Id
+Ref: planning.WorkStandardVersion.PoolId > planning.CapacityPool.Id
+Ref: planning.WorkStandardVersion.MaterialId > catalog.Material.Id
+Ref: planning.CapacityBooking.AllocationId > operations.FulfillmentAllocation.Id
+Ref: planning.CapacityBooking.PoolId > planning.CapacityPool.Id
+Ref: planning.CapacityBooking.RescheduledFromId > planning.CapacityBooking.Id
+Ref: planning.CapacityBooking.ApprovedBy > security.AppUser.Id
+Ref: planning.CapacityBooking.LastOperationId > platform.OperationRequest.Id
+Ref: planning.CapacityExecution.PoolId > planning.CapacityPool.Id
+Ref: planning.CapacityExecution.PickConfirmationId > warehouse.PickConfirmation.Id
+Ref: planning.CapacityExecution.HandlingUnitItemId > warehouse.HandlingUnitItem.Id
+Ref: planning.CapacityExecution.LoadEventId > shipping.LoadEvent.Id
+Ref: planning.CapacityExecution.OperationId > platform.OperationRequest.Id
+Ref: operations.SalesOrder.(CurrentRevisionId, Id) > operations.OrderRevision.(Id, OrderId)
+Ref: operations.OrderLineRevision.(OrderRevisionId, OrderId) > operations.OrderRevision.(Id, OrderId)
+Ref: operations.OrderLineRevision.(OrderLineId, OrderId) > operations.OrderLine.(Id, OrderId)
+Ref: operations.FulfillmentAllocation.(OrderLineRevisionId, OrderLineId) > operations.OrderLineRevision.(Id, OrderLineId)
+Ref: planning.Trip.(CurrentRevisionId, Id) > planning.TripRevision.(Id, TripId)
+Ref: shipping.Shipment.(TripRevisionId, TripId) > planning.TripRevision.(Id, TripId)
+Ref: shipping.ShipmentUnit.(ShipmentId, TripRevisionId) > shipping.Shipment.(Id, TripRevisionId)
+Ref: shipping.ShipmentUnit.(StopId, TripRevisionId) > planning.TripStop.(Id, TripRevisionId)
+Ref: integration.ImportRow.(OrderResultId, RunId) > integration.ImportOrderResult.(Id, RunId)
+Ref: integration.ImportError.(RowId, RunId) > integration.ImportRow.(Id, RunId)
+Ref: catalog.Location.(ParentLocationId, WarehouseId) > catalog.Location.(Id, WarehouseId)
+Ref: planning.CapacityBooking.(CapacityDayId, PoolId) > planning.CapacityDay.(Id, PoolId)
+Ref: planning.CapacityBooking.(WorkStandardVersionId, PoolId) > planning.WorkStandardVersion.(Id, PoolId)
+Ref: planning.CapacityExecution.(BookingId, PoolId) > planning.CapacityBooking.(Id, PoolId)
+Ref: planning.CapacityExecution.(ActualCapacityDayId, PoolId) > planning.CapacityDay.(Id, PoolId)
+// UNIQUE FILTRADO: planning.Driver(UserId) WHERE UserId IS NOT NULL
+// UNIQUE FILTRADO: quality.Approval(ExecutedOperationId) WHERE ExecutedOperationId IS NOT NULL
+// UNIQUE FILTRADO: shipping.ShipmentUnit(HandlingUnitId) WHERE ReleasedAtUtc IS NULL
+// UNIQUE FILTRADO: shipping.Shipment(TrailerId) WHERE ClosedAtUtc IS NULL AND CancelledAtUtc IS NULL
+// UNIQUE FILTRADO: planning.CapacityExecution(BookingId, PickConfirmationId) WHERE PickConfirmationId IS NOT NULL
+// UNIQUE FILTRADO: planning.CapacityExecution(BookingId, HandlingUnitItemId) WHERE HandlingUnitItemId IS NOT NULL AND LoadEventId IS NULL
+// UNIQUE FILTRADO: planning.CapacityExecution(BookingId, LoadEventId, HandlingUnitItemId) WHERE LoadEventId IS NOT NULL
+
+TableGroup security {
+  security.AppUser
+  security.Role
+  security.Permission
+  security.UserRole
+  security.RolePermission
+  security.UserWarehouse
+}
+
+TableGroup platform {
+  platform.SchemaMigration
+  platform.OperationRequest
+}
+
+TableGroup catalog {
+  catalog.LogisticsPoint
+  catalog.PointAddress
+  catalog.Warehouse
+  catalog.Location
+  catalog.Customer
+  catalog.DeliverySite
+  catalog.DeliveryWindow
+  catalog.UnitOfMeasure
+  catalog.Material
+  catalog.MaterialUnitConversion
+  catalog.MaterialIdentifier
+  catalog.MaterialLot
+  catalog.MaterialLocation
+  catalog.HandlingUnitType
+}
+
+TableGroup integration {
+  integration.SourceSystem
+  integration.MappingProfileVersion
+  integration.MappingField
+  integration.ImportedFile
+  integration.ImportRun
+  integration.ImportOrderResult
+  integration.ImportRow
+  integration.ImportError
+}
+
+TableGroup operations {
+  operations.SalesOrder
+  operations.OrderRevision
+  operations.OrderLine
+  operations.OrderLineRevision
+  operations.FulfillmentAllocation
+}
+
+TableGroup planning {
+  planning.DistanceReference
+  planning.Carrier
+  planning.Trailer
+  planning.Driver
+  planning.Trip
+  planning.TripRevision
+  planning.TripStop
+  planning.TripAllocation
+  planning.CapacityPool
+  planning.CapacityDay
+  planning.WorkStandardVersion
+  planning.CapacityBooking
+  planning.CapacityExecution
+}
+
+TableGroup warehouse {
+  warehouse.PickingTask
+  warehouse.PickingTaskLine
+  warehouse.PickConfirmation
+  warehouse.PickReversal
+  warehouse.PackingReceipt
+  warehouse.ReceiptReversal
+  warehouse.HandlingUnit
+  warehouse.HandlingUnitItem
+  warehouse.PackingReversal
+  warehouse.HandlingUnitMovement
+}
+
+TableGroup shipping {
+  shipping.Shipment
+  shipping.ShipmentUnit
+  shipping.LoadEvent
+  shipping.ShipmentClosure
+}
+
+TableGroup quality {
+  quality.IncidentType
+  quality.Incident
+  quality.IncidentAction
+  quality.Hold
+  quality.Approval
+}
+
+TableGroup audit {
+  audit.AuditEvent
+}

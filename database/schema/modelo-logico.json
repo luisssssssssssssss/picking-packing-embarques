@@ -1,0 +1,5938 @@
+{
+  "version": "0.2",
+  "date": "2026-09-27",
+  "tables": [
+    {
+      "name": "security.AppUser",
+      "title": "Usuarios",
+      "phase": 1,
+      "description": "Identidad de la aplicación, independiente del login de SQL Server.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Login",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "DisplayName",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PasswordHash",
+          "nullable": false,
+          "type": "nvarchar(512)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "LockedUntilUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "FailedLoginCount",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Login"
+        ]
+      ],
+      "rules": [
+        "Login normalizado y único; no reutilizar identidades de usuarios dados de baja.",
+        "PasswordHash incluye algoritmo, sal y parámetros; nunca contraseña reversible. JWT y secretos de firma no se guardan aquí."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "security.Role",
+      "title": "Roles",
+      "phase": 1,
+      "description": "Agrupa capacidades sin programar permisos por nombre de persona.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Name",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "security.Permission",
+      "title": "Permisos",
+      "phase": 1,
+      "description": "Operaciones autorizables, por ejemplo liberar planeación o cerrar embarque.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Description",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "security.UserRole",
+      "title": "Roles de usuario",
+      "phase": 1,
+      "description": "Relación muchos a muchos.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "UserId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "RoleId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.Role.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "UserId",
+          "RoleId"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "security.RolePermission",
+      "title": "Permisos de rol",
+      "phase": 1,
+      "description": "Relación muchos a muchos.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "RoleId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.Role.Id",
+          "note": ""
+        },
+        {
+          "name": "PermissionId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.Permission.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "RoleId",
+          "PermissionId"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "security.UserWarehouse",
+      "title": "Acceso por almacén",
+      "phase": 1,
+      "description": "Limita el ámbito operativo incluso si el rol permite la acción.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "UserId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "WarehouseId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Warehouse.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "UserId",
+          "WarehouseId"
+        ]
+      ],
+      "rules": [
+        "Ausencia de asignación no significa acceso global. El acceso global debe ser un permiso explícito."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "platform.SchemaMigration",
+      "title": "Versiones de esquema",
+      "phase": 1,
+      "description": "Registro de migraciones aplicadas; no guarda credenciales ni ejecuta cambios por sí sola.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "ApplicationCode",
+          "type": "nvarchar(64)",
+          "nullable": false,
+          "note": "Identificador fijo PickingPackingEmbarques; comprobar antes de modificar una instalación."
+        },
+        {
+          "name": "Version",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ScriptChecksum",
+          "nullable": false,
+          "type": "binary(32)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "AppliedAtUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ApplicationVersion",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "Version"
+        ]
+      ],
+      "rules": [
+        "Solo registrar como aplicada al completarse correctamente; discrepancia de checksum requiere revisión.",
+        "La instalación debe reconocer la identidad de esta aplicación antes de modificar una base existente.",
+        "CHECK ApplicationCode = PickingPackingEmbarques; una tabla con ese nombre no basta para reconocer otra aplicación."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "platform.OperationRequest",
+      "title": "Comandos e idempotencia",
+      "phase": 1,
+      "description": "Identifica confirmaciones y reintentos; comparte transacción con el cambio operativo y su auditoría.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "ActorUserId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "IdempotencyKey",
+          "nullable": false,
+          "type": "uniqueidentifier",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "OperationCode",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "RequestHash",
+          "nullable": false,
+          "type": "binary(32)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Outcome",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "SUCCEEDED o REJECTED"
+        },
+        {
+          "name": "ResponseCode",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ResultJson",
+          "nullable": true,
+          "type": "nvarchar(max)",
+          "ref": null,
+          "note": "Resultado mínimo sin secretos"
+        },
+        {
+          "name": "CompletedAtUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "ActorUserId",
+          "IdempotencyKey"
+        ]
+      ],
+      "rules": [
+        "Una misma clave con contenido distinto se rechaza.",
+        "Se confirma registro, resultado y operación en una sola transacción; no dejar un IN_PROGRESS durable sin protocolo de recuperación.",
+        "No purgar claves mientras se admitan reintentos de sus operaciones; definir retención antes del piloto."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "catalog.LogisticsPoint",
+      "title": "Puntos logísticos",
+      "phase": 1,
+      "description": "Identidad de un origen o destino geográfico, independiente de cambios de dirección.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Name",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PointType",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "WAREHOUSE o DELIVERY_SITE"
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [
+        "Cada punto se asocia con exactamente un almacén o destino y un tipo coherente; validar al darlo de alta."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "catalog.PointAddress",
+      "title": "Versiones de dirección",
+      "phase": 1,
+      "description": "Dirección y coordenadas inmutables para preservar rutas históricas.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "PointId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.LogisticsPoint.Id",
+          "note": ""
+        },
+        {
+          "name": "VersionNumber",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "AddressText",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "City",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Region",
+          "nullable": true,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PostalCode",
+          "nullable": true,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CountryCode",
+          "nullable": false,
+          "type": "nvarchar(2)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Latitude",
+          "nullable": true,
+          "type": "decimal(9,6)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Longitude",
+          "nullable": true,
+          "type": "decimal(9,6)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "TimeZoneId",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ValidFromUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "PointId",
+          "VersionNumber"
+        ],
+        [
+          "Id",
+          "PointId"
+        ]
+      ],
+      "rules": [
+        "Latitud entre -90 y 90; longitud entre -180 y 180; ambas informadas o ambas nulas.",
+        "La dirección vigente es la última versión efectiva por punto. Cambiar dirección crea otra versión, sin editar la anterior."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "catalog.Warehouse",
+      "title": "Almacenes",
+      "phase": 1,
+      "description": "Almacén de origen; la ubicación interna se maneja en Location.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Name",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PointId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.LogisticsPoint.Id",
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ],
+        [
+          "PointId"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "catalog.Location",
+      "title": "Ubicaciones internas",
+      "phase": 1,
+      "description": "Jerarquía simple de zonas, pasillos, posiciones, packing, preembarque y andenes.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "WarehouseId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Warehouse.Id",
+          "note": ""
+        },
+        {
+          "name": "ParentLocationId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "catalog.Location.Id",
+          "note": ""
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Name",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "LocationType",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "ZONE, AISLE, BIN, PACKING, STAGING, DOCK"
+        },
+        {
+          "name": "AllowsPicking",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "AllowsStorage",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "WarehouseId",
+          "Code"
+        ],
+        [
+          "Id",
+          "WarehouseId"
+        ]
+      ],
+      "rules": [
+        "Padre del mismo almacén, sin ciclos y distinto de sí mismo.",
+        "Andén se modela como Location tipo DOCK; no duplicar Dock y Location.",
+        "Una ubicación con operaciones abiertas no puede desactivarse o moverse de almacén."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "catalog.Customer",
+      "title": "Clientes",
+      "phase": 1,
+      "description": "Cliente comercial; puede tener múltiples puntos de entrega.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Name",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "catalog.DeliverySite",
+      "title": "Destinos del cliente",
+      "phase": 1,
+      "description": "Identifica una planta o sucursal concreta, no solo el nombre del cliente.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "CustomerId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Customer.Id",
+          "note": ""
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Name",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PointId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.LogisticsPoint.Id",
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "CustomerId",
+          "Code"
+        ],
+        [
+          "PointId"
+        ],
+        [
+          "Id",
+          "CustomerId"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "catalog.DeliveryWindow",
+      "title": "Horarios de recepción",
+      "phase": 2,
+      "description": "Ventanas semanales de referencia; la cita concreta se guarda en la parada.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "DeliverySiteId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.DeliverySite.Id",
+          "note": ""
+        },
+        {
+          "name": "WeekDay",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": "1 a 7, lunes a domingo"
+        },
+        {
+          "name": "StartLocal",
+          "nullable": false,
+          "type": "time(0)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "EndLocal",
+          "nullable": false,
+          "type": "time(0)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ValidFrom",
+          "nullable": false,
+          "type": "date",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ValidTo",
+          "nullable": true,
+          "type": "date",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "DeliverySiteId",
+          "WeekDay",
+          "StartLocal",
+          "ValidFrom"
+        ]
+      ],
+      "rules": [
+        "EndLocal > StartLocal. Horarios que cruzan medianoche se dividen en dos registros.",
+        "Sin solapamientos de ventanas equivalentes durante su vigencia; festivos especiales quedan para extensión."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "catalog.UnitOfMeasure",
+      "title": "Unidades de medida",
+      "phase": 1,
+      "description": "No confundir PZA, KG, caja o tarima.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Name",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "QuantityScale",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": "0 a 6 decimales permitidos"
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "catalog.Material",
+      "title": "Productos o materiales",
+      "phase": 1,
+      "description": "Código estable y unidad base usada para conservar cantidades.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Description",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "BaseUnitId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.UnitOfMeasure.Id",
+          "note": ""
+        },
+        {
+          "name": "RequiresLot",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [
+        "La unidad base no cambia cuando existe historia operativa; requiere migración de datos o material nuevo.",
+        "RequiresLot es propuesta de catálogo a confirmar con el negocio; no implica FEFO automático."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "catalog.MaterialUnitConversion",
+      "title": "Conversiones por producto",
+      "phase": 1,
+      "description": "Una caja no contiene necesariamente la misma cantidad para todos los materiales.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "MaterialId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Material.Id",
+          "note": ""
+        },
+        {
+          "name": "FromUnitId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.UnitOfMeasure.Id",
+          "note": ""
+        },
+        {
+          "name": "FactorToBase",
+          "nullable": false,
+          "type": "decimal(28,12)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "VersionNumber",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ValidFromUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "MaterialId",
+          "FromUnitId",
+          "VersionNumber"
+        ]
+      ],
+      "rules": [
+        "Factor > 0; convertir siempre a la unidad base del material, sin cadenas ambiguas.",
+        "La revisión de pedido conserva el factor usado. No recalcular historia con factores posteriores.",
+        "Unidad base equivale a factor 1. No redondear silenciosamente fracciones inválidas."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "catalog.MaterialIdentifier",
+      "title": "Códigos alternos de material",
+      "phase": 2,
+      "description": "Permite códigos de barras u otros identificadores sin depender del dispositivo.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "MaterialId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Material.Id",
+          "note": ""
+        },
+        {
+          "name": "UnitId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.UnitOfMeasure.Id",
+          "note": ""
+        },
+        {
+          "name": "Scheme",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Value",
+          "nullable": false,
+          "type": "nvarchar(128)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Scheme",
+          "Value"
+        ]
+      ],
+      "rules": [
+        "No reutilizar un identificador para otro material; la captura manual sigue siendo válida."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "catalog.MaterialLot",
+      "title": "Lotes",
+      "phase": 2,
+      "description": "Un lote pertenece a un material. No se crea un lote ficticio para representar ausencia.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "MaterialId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Material.Id",
+          "note": ""
+        },
+        {
+          "name": "LotCode",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ManufacturedOn",
+          "nullable": true,
+          "type": "date",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ExpiresOn",
+          "nullable": true,
+          "type": "date",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsBlocked",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "MaterialId",
+          "LotCode"
+        ],
+        [
+          "Id",
+          "MaterialId"
+        ]
+      ],
+      "rules": [
+        "Fecha de caducidad no anterior a fabricación, cuando ambas existen.",
+        "La unicidad de lote por material debe confirmarse con el cliente; si cambia por fabricante, agregar ese ámbito antes de implementar."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "catalog.MaterialLocation",
+      "title": "Ubicaciones permitidas o habituales",
+      "phase": 2,
+      "description": "Relación muchos a muchos; NO representa existencias ni reservas.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "MaterialId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Material.Id",
+          "note": ""
+        },
+        {
+          "name": "LocationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Location.Id",
+          "note": ""
+        },
+        {
+          "name": "IsPreferred",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "MaterialId",
+          "LocationId"
+        ]
+      ],
+      "rules": [
+        "Permitir varias ubicaciones para un material y varios materiales por ubicación.",
+        "Elegir ubicación preferente no garantiza que exista cantidad física."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "catalog.HandlingUnitType",
+      "title": "Tipos de unidad de manejo",
+      "phase": 3,
+      "description": "Por ejemplo caja o tarima; sin cálculo de estiba o volumetría.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Name",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "integration.SourceSystem",
+      "title": "Ámbito de datos de origen",
+      "phase": 1,
+      "description": "Identifica la exportación, incluyendo sociedad/planta si son parte de la clave SAP. No es conexión a SAP.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Description",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [
+        "Dos pedidos con igual número de distintos ámbitos de origen no se mezclan."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "integration.MappingProfileVersion",
+      "title": "Versiones de mapeo",
+      "phase": 1,
+      "description": "Formato explícito e inmutable del CSV/TXT recibido.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "SourceSystemId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "integration.SourceSystem.Id",
+          "note": ""
+        },
+        {
+          "name": "ProfileCode",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "VersionNumber",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Delimiter",
+          "nullable": false,
+          "type": "nvarchar(8)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "EncodingName",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "HasHeader",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "DateFormat",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "DecimalSeparator",
+          "nullable": false,
+          "type": "nvarchar(1)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "SourceTimeZone",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Mode",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "ORDER_SNAPSHOT inicial"
+        },
+        {
+          "name": "DefinitionHash",
+          "nullable": false,
+          "type": "binary(32)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "SourceSystemId",
+          "ProfileCode",
+          "VersionNumber"
+        ]
+      ],
+      "rules": [
+        "No adivinar fechas o separadores ambiguos.",
+        "Propuesta inicial: archivo contiene pedidos completos; fragmentos/deltas requieren contrato explícito.",
+        "Editar un mapeo genera una nueva versión."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "integration.MappingField",
+      "title": "Correspondencia de columnas",
+      "phase": 1,
+      "description": "Una columna o constante de origen alimenta un campo interno permitido.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "ProfileVersionId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "integration.MappingProfileVersion.Id",
+          "note": ""
+        },
+        {
+          "name": "TargetField",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "SourceColumnName",
+          "nullable": true,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "SourceColumnIndex",
+          "nullable": true,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ConstantValue",
+          "nullable": true,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsRequired",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "TransformCode",
+          "nullable": true,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "ProfileVersionId",
+          "TargetField"
+        ]
+      ],
+      "rules": [
+        "Exactamente uno entre nombre, índice o constante. Índices positivos.",
+        "Transformaciones de lista permitida; nunca ejecutar expresiones arbitrarias del archivo."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "integration.ImportedFile",
+      "title": "Archivos originales",
+      "phase": 1,
+      "description": "Contenido original inmutable y huella de bytes; nombre del archivo no es su identidad.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "SourceSystemId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "integration.SourceSystem.Id",
+          "note": ""
+        },
+        {
+          "name": "ContentHash",
+          "nullable": false,
+          "type": "binary(32)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ByteLength",
+          "nullable": false,
+          "type": "bigint",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "OriginalFileName",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "StorageKey",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": "Referencia controlada al archivo, no ruta proporcionada por el usuario"
+        },
+        {
+          "name": "UploadedBy",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "SourceSystemId",
+          "ContentHash"
+        ]
+      ],
+      "rules": [
+        "Conservar bytes originales y hash; ruta física bajo control del backend.",
+        "Tamaño > 0 y límites configurados antes de leer; archivos vacíos se rechazan y auditan sin importar.",
+        "Respaldar también los archivos externos; restaurar solo SQL no los recupera."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "integration.ImportRun",
+      "title": "Intentos de procesamiento",
+      "phase": 1,
+      "description": "Registra cada intento, incluso si ya se recibió el mismo archivo.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "FileId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "integration.ImportedFile.Id",
+          "note": ""
+        },
+        {
+          "name": "ProfileVersionId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "integration.MappingProfileVersion.Id",
+          "note": ""
+        },
+        {
+          "name": "AttemptNumber",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "RequestedBy",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "StartedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "FinishedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "LeaseToken",
+          "nullable": true,
+          "type": "uniqueidentifier",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "LeaseExpiresAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "FileId",
+          "AttemptNumber"
+        ],
+        [
+          "Id",
+          "FileId"
+        ]
+      ],
+      "rules": [
+        "Perfil y archivo pertenecen al mismo SourceSystem.",
+        "No aplicar dos intentos simultáneos sobre el mismo archivo. Lease con token de cercado para recuperar trabajos interrumpidos.",
+        "Estados RECEIVED, PROCESSING, COMPLETED, PARTIAL, FAILED, DUPLICATE; DUPLICATE no vuelve a escribir pedidos."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "integration.ImportOrderResult",
+      "title": "Resultado por pedido del archivo",
+      "phase": 1,
+      "description": "Unidad atómica propuesta: aceptar todas las líneas de un pedido o rechazar ese pedido completo.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "RunId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "integration.ImportRun.Id",
+          "note": ""
+        },
+        {
+          "name": "ExternalOrderNumber",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "PENDING, APPLIED, REJECTED, UNCHANGED"
+        },
+        {
+          "name": "OrderRevisionId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "operations.OrderRevision.Id",
+          "note": ""
+        },
+        {
+          "name": "MessageCode",
+          "nullable": true,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "RunId",
+          "ExternalOrderNumber"
+        ],
+        [
+          "Id",
+          "RunId"
+        ]
+      ],
+      "rules": [
+        "APPLIED exige revisión vinculada. UNCHANGED referencia la revisión equivalente sin crear otra.",
+        "Resultados y revisión operativa se confirman en la misma transacción; no perder el vínculo tras una caída."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "integration.ImportRow",
+      "title": "Filas de staging",
+      "phase": 1,
+      "description": "Preserva texto y valores interpretados, incluida la línea física de origen.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "RunId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "integration.ImportRun.Id",
+          "note": ""
+        },
+        {
+          "name": "OrderResultId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "integration.ImportOrderResult.Id",
+          "note": ""
+        },
+        {
+          "name": "RecordNumber",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PhysicalLineStart",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PhysicalLineEnd",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "RawText",
+          "nullable": false,
+          "type": "nvarchar(max)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ParsedJson",
+          "nullable": true,
+          "type": "nvarchar(max)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "AppliedOrderLineId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "operations.OrderLine.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "RunId",
+          "RecordNumber"
+        ],
+        [
+          "Id",
+          "RunId"
+        ]
+      ],
+      "rules": [
+        "Conservar ceros iniciales en códigos. CSV entrecomillado puede ocupar varias líneas físicas.",
+        "No usar número de fila como identidad de la línea del pedido.",
+        "OrderResult debe pertenecer al mismo Run; AppliedOrderLine solo se informa al aplicar el pedido."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "integration.ImportError",
+      "title": "Errores y advertencias",
+      "phase": 1,
+      "description": "Puede haber varios errores por fila o errores generales del archivo.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "RunId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "integration.ImportRun.Id",
+          "note": ""
+        },
+        {
+          "name": "RowId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "integration.ImportRow.Id",
+          "note": ""
+        },
+        {
+          "name": "FieldName",
+          "nullable": true,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Severity",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "ERROR o WARNING"
+        },
+        {
+          "name": "ErrorCode",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Message",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "RawValue",
+          "nullable": true,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "La fila, cuando exista, debe pertenecer al mismo intento.",
+        "Los valores se limitan y sanitizan; no exponer rutas internas o credenciales."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "operations.SalesOrder",
+      "title": "Pedidos",
+      "phase": 1,
+      "description": "Identidad permanente del pedido; sus requisitos se versionan.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "SourceSystemId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "integration.SourceSystem.Id",
+          "note": ""
+        },
+        {
+          "name": "ExternalOrderNumber",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CustomerId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Customer.Id",
+          "note": ""
+        },
+        {
+          "name": "CurrentRevisionId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "operations.OrderRevision.Id",
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "SourceSystemId",
+          "ExternalOrderNumber"
+        ]
+      ],
+      "rules": [
+        "CurrentRevisionId debe ser revisión del mismo pedido mediante FK compuesta.",
+        "Crear encabezado y revisión en una transacción; no publicar un pedido sin revisión vigente.",
+        "Cliente inmutable tras liberar operaciones; el estado resumido no sustituye el avance por línea."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "operations.OrderRevision",
+      "title": "Revisiones del pedido",
+      "phase": 1,
+      "description": "Instantánea aceptada de los requisitos. Una importación no modifica silenciosamente lo que ya se está ejecutando.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "OrderId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "operations.SalesOrder.Id",
+          "note": ""
+        },
+        {
+          "name": "RevisionNumber",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "BusinessContentHash",
+          "nullable": false,
+          "type": "binary(32)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ExternalRevision",
+          "nullable": true,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "SourceAsOfUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ChangeReason",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "AcceptedBy",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "OrderId",
+          "RevisionNumber"
+        ],
+        [
+          "Id",
+          "OrderId"
+        ]
+      ],
+      "rules": [
+        "Hash de datos normalizados incluye líneas ordenadas, cantidades, destinos y fechas, no metadatos de carga.",
+        "Si el origen no identifica su versión o fecha, un cambio no se acepta automáticamente solo por haber llegado después.",
+        "Revisiones aceptadas inmutables. Hash igual a la revisión vigente implica UNCHANGED. Contenido igual a una revisión antigua requiere revisión manual, no retroceder automáticamente."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "operations.OrderLine",
+      "title": "Identidad de línea de pedido",
+      "phase": 1,
+      "description": "Distingue dos líneas del mismo producto. La clave externa no depende del material ni del orden de las filas.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "OrderId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "operations.SalesOrder.Id",
+          "note": ""
+        },
+        {
+          "name": "ExternalLineKey",
+          "nullable": false,
+          "type": "nvarchar(128)",
+          "ref": null,
+          "note": "Incluye sublínea de origen si existe"
+        },
+        {
+          "name": "IsClosed",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "OrderId",
+          "ExternalLineKey"
+        ],
+        [
+          "Id",
+          "OrderId"
+        ]
+      ],
+      "rules": [
+        "No asumir que material o lote identifica una línea.",
+        "Una línea omitida en el archivo no se cancela automáticamente; exige semántica de snapshot y autorización.",
+        "Publicar otra revisión o cambiar compromisos modifica también RowVersion de la línea; los servicios deben bloquear el agregado para mantener coherencia."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "operations.OrderLineRevision",
+      "title": "Requisitos versionados por línea",
+      "phase": 1,
+      "description": "Demanda comercial y destino concretos; distintas líneas pueden tener diferentes destinos.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "OrderId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "operations.SalesOrder.Id",
+          "note": ""
+        },
+        {
+          "name": "OrderRevisionId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "operations.OrderRevision.Id",
+          "note": ""
+        },
+        {
+          "name": "OrderLineId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "operations.OrderLine.Id",
+          "note": ""
+        },
+        {
+          "name": "MaterialId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Material.Id",
+          "note": ""
+        },
+        {
+          "name": "DeliverySiteId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.DeliverySite.Id",
+          "note": ""
+        },
+        {
+          "name": "RequestedUnitId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.UnitOfMeasure.Id",
+          "note": ""
+        },
+        {
+          "name": "RequestedQuantity",
+          "nullable": false,
+          "type": "decimal(19,6)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "FactorToBase",
+          "nullable": false,
+          "type": "decimal(28,12)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "RequiredBaseQuantity",
+          "nullable": false,
+          "type": "decimal(19,6)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "RequestedDate",
+          "nullable": false,
+          "type": "date",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Priority",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsCancelled",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "MaterialCodeSnapshot",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "MaterialDescriptionSnapshot",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "OrderRevisionId",
+          "OrderLineId"
+        ],
+        [
+          "Id",
+          "OrderLineId"
+        ]
+      ],
+      "rules": [
+        "Pedido de revisión y línea debe coincidir mediante FKs compuestas usando OrderId.",
+        "Destino pertenece al cliente del pedido. Cantidades > 0; cancelación es explícita, no cantidad negativa.",
+        "RequiredBaseQuantity = RequestedQuantity × FactorToBase, representable en la escala permitida.",
+        "Material, destino y unidad base no cambian si existe ejecución. Una sustitución exige otra línea y tratamiento autorizado del pendiente.",
+        "Para cambiar material o destino sin ejecución, primero cancelar todos los compromisos y tareas previos no ejecutados. Una revisión no redirige tareas existentes de forma implícita."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "operations.FulfillmentAllocation",
+      "title": "Asignaciones de surtido",
+      "phase": 2,
+      "description": "Divide la demanda entre almacenes. Es compromiso de surtido; los viajes se asignan por separado en TripAllocation. No equivale a reserva física.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "OrderLineId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "operations.OrderLine.Id",
+          "note": ""
+        },
+        {
+          "name": "OrderLineRevisionId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "operations.OrderLineRevision.Id",
+          "note": ""
+        },
+        {
+          "name": "WarehouseId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Warehouse.Id",
+          "note": ""
+        },
+        {
+          "name": "AllocatedBaseQuantity",
+          "nullable": false,
+          "type": "decimal(19,6)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "DRAFT, RELEASED, IN_PROGRESS, COMPLETED, CANCELLED"
+        },
+        {
+          "name": "ReleasedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ReleasedBy",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "FK compuesta asegura que la revisión corresponde a OrderLineId.",
+        "Una línea puede dividirse entre almacenes. Una asignación tiene un almacén; sus cantidades pueden distribuirse entre varios viajes mediante TripAllocation.",
+        "Suma de cantidades no canceladas, incluidas completadas, <= demanda vigente. Cantidad positiva.",
+        "Liberar exige origen válido, destino, ubicación para cada tarea y plan aprobado cuando se exija ruta antes de Picking.",
+        "No cancelar una asignación con ejecución neta; reducir/sustituir exige devolver o reasignar cantidades de forma controlada.",
+        "Nuevas asignaciones usan la revisión vigente no cancelada. Las antiguas conservan su revisión solo si material, destino y unidad base permanecen compatibles y se respetan los límites vigentes.",
+        "Las jornadas se distribuyen en CapacityBooking sin duplicar AllocatedBaseQuantity. Una cantidad puede tener capacidad de Picking, Packing y carga en días diferentes; no son tres demandas distintas."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "planning.DistanceReference",
+      "title": "Distancias entre puntos",
+      "phase": 2,
+      "description": "Estimación direccional entre dos versiones de dirección, no atributo del cliente.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "OriginAddressId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.PointAddress.Id",
+          "note": ""
+        },
+        {
+          "name": "DestinationAddressId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.PointAddress.Id",
+          "note": ""
+        },
+        {
+          "name": "RoadDistanceKm",
+          "nullable": false,
+          "type": "decimal(12,3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ReferenceMinutes",
+          "nullable": true,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "SourceDescription",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "MeasuredOn",
+          "nullable": false,
+          "type": "date",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ValidUntil",
+          "nullable": true,
+          "type": "date",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "OriginAddressId",
+          "DestinationAddressId",
+          "MeasuredOn",
+          "SourceDescription"
+        ]
+      ],
+      "rules": [
+        "Origen distinto del destino; km >= 0; minutos >= 0; vigencia coherente.",
+        "A->B no implica B->A. Sin dato se muestra desconocido, nunca cero por defecto.",
+        "No representa GPS, tráfico en vivo o ruta óptima. Cada tramo del viaje puede conservar la referencia usada."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "planning.Carrier",
+      "title": "Transportistas",
+      "phase": 2,
+      "description": "Empresa responsable del transporte, si el cliente requiere distinguirla.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Name",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "planning.Trailer",
+      "title": "Tráileres",
+      "phase": 2,
+      "description": "Unidad física reutilizable en distintos viajes; un viaje no es el tráiler.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Registration",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "RegistrationRegion",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CarrierId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "planning.Carrier.Id",
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ],
+        [
+          "RegistrationRegion",
+          "Registration"
+        ]
+      ],
+      "rules": [
+        "Sin capacidad automática de peso/volumen en la primera versión."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "planning.Driver",
+      "title": "Choferes",
+      "phase": 2,
+      "description": "Identidad del conductor; una cuenta opcional permite consultar solo sus viajes.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "DisplayName",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CarrierId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "planning.Carrier.Id",
+          "note": ""
+        },
+        {
+          "name": "UserId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [
+        "UserId único cuando no es NULL. No almacenar documentos personales innecesarios."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "planning.Trip",
+      "title": "Viajes",
+      "phase": 2,
+      "description": "Identidad del recorrido; primera versión con un almacén de salida y varias paradas.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "OriginWarehouseId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Warehouse.Id",
+          "note": ""
+        },
+        {
+          "name": "CurrentRevisionId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "planning.TripRevision.Id",
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "DRAFT, RELEASED, LOADING, CLOSED, CANCELLED"
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [
+        "FK compuesta garantiza que CurrentRevisionId corresponde al mismo viaje.",
+        "Viajes con recogidas en varios almacenes durante el trayecto son ampliación futura; hoy se generan viajes separados."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "planning.TripRevision",
+      "title": "Versiones del plan de viaje",
+      "phase": 2,
+      "description": "Borrador editable hasta aprobación; después es una versión congelada.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "TripId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "planning.Trip.Id",
+          "note": ""
+        },
+        {
+          "name": "RevisionNumber",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "OriginAddressId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.PointAddress.Id",
+          "note": ""
+        },
+        {
+          "name": "PlannedDepartureUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PlannedTrailerId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "planning.Trailer.Id",
+          "note": ""
+        },
+        {
+          "name": "PlannedDriverId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "planning.Driver.Id",
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "DRAFT, APPROVED, SUPERSEDED"
+        },
+        {
+          "name": "ApprovedBy",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "ApprovedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ChangeReason",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "TripId",
+          "RevisionNumber"
+        ],
+        [
+          "Id",
+          "TripId"
+        ]
+      ],
+      "rules": [
+        "OriginAddress debe pertenecer al punto del almacén de origen.",
+        "Aprobar requiere paradas coherentes y sin órdenes repetidos; no se ordena por kilómetros automáticamente.",
+        "Después de iniciar carga, el plan queda congelado. Replanear antes exige nueva revisión y reasignación atómica de dependencias; nunca cambiar solo CurrentRevisionId."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "planning.TripStop",
+      "title": "Paradas del viaje",
+      "phase": 2,
+      "description": "Una visita concreta. Dos visitas al mismo cliente son dos paradas distintas.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "TripRevisionId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "planning.TripRevision.Id",
+          "note": ""
+        },
+        {
+          "name": "SequenceNumber",
+          "nullable": false,
+          "type": "int",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "DeliverySiteId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.DeliverySite.Id",
+          "note": ""
+        },
+        {
+          "name": "AddressVersionId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.PointAddress.Id",
+          "note": ""
+        },
+        {
+          "name": "WindowStartUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "WindowEndUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "DistanceFromPreviousId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "planning.DistanceReference.Id",
+          "note": ""
+        },
+        {
+          "name": "Instructions",
+          "nullable": true,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "TripRevisionId",
+          "SequenceNumber"
+        ],
+        [
+          "Id",
+          "TripRevisionId"
+        ]
+      ],
+      "rules": [
+        "Secuencia positiva, sin duplicados; al aprobar, orden consecutivo o normalizado.",
+        "Dirección pertenece al destino. Ventana inicial < final; ambas nulas o ambas informadas.",
+        "Distancia corresponde exactamente al tramo anterior, usando origen del viaje para la primera parada.",
+        "Inmutable cuando su revisión está aprobada."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "planning.TripAllocation",
+      "title": "Cantidades planeadas por parada",
+      "phase": 2,
+      "description": "Relaciona cantidades de una asignación de surtido con una visita concreta. Permite parciales y nuevos viajes sin reescribir el origen del Picking.",
+      "mutable": true,
+      "unique": [
+        [
+          "StopId",
+          "AllocationId"
+        ]
+      ],
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable."
+        },
+        {
+          "name": "StopId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "planning.TripStop.Id"
+        },
+        {
+          "name": "AllocationId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "operations.FulfillmentAllocation.Id"
+        },
+        {
+          "name": "PlannedBaseQuantity",
+          "type": "decimal(19,6)",
+          "nullable": false
+        },
+        {
+          "name": "CancelledBaseQuantity",
+          "type": "decimal(19,6)",
+          "nullable": false,
+          "note": "Inicia en cero; liberación de remanente explícita y auditada."
+        },
+        {
+          "name": "Status",
+          "type": "nvarchar(64)",
+          "nullable": false,
+          "note": "DRAFT, RELEASED, COMPLETED, CANCELLED"
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false
+        }
+      ],
+      "rules": [
+        "PlannedBaseQuantity > 0; 0 <= CancelledBaseQuantity <= PlannedBaseQuantity. Compromiso neto = planeado - cancelado.",
+        "Origen y destino coinciden con el almacén de la asignación y destino de su línea; no asumir que cualquier parada del mismo cliente es equivalente.",
+        "Suma de compromisos netos por asignación, incluidos viajes completados, <= cantidad asignada. Asignaciones HU activas de esa parada no superan el compromiso neto.",
+        "Replanear o liberar un parcial solo afecta remanente no cargado ni asignado a HU activa. Liberar primero la asignación de HU si corresponde; no alterar el material ya embarcado.",
+        "El remanente cancelado de un viaje puede comprometerse en otra parada con un nuevo TripAllocation; Picking, recepción y contenido HU mantienen sus identidades."
+      ]
+    },
+    {
+      "name": "warehouse.PickingTask",
+      "title": "Tareas de Picking",
+      "phase": 2,
+      "description": "Trabajo asignable dentro de un único almacén.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "WarehouseId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Warehouse.Id",
+          "note": ""
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "AssignedUserId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "OPEN, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED"
+        },
+        {
+          "name": "StartedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CompletedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [
+        "Cambiar operador no cambia confirmaciones previas; reasignaciones quedan auditadas.",
+        "Completar requiere que todas las líneas estén satisfechas o su remanente haya sido tratado explícitamente."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "warehouse.PickingTaskLine",
+      "title": "Detalle de Picking",
+      "phase": 2,
+      "description": "Indica asignación de surtido, posición y lote concretos. Separar por origen o lote cuando se divida el surtido.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "TaskId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "warehouse.PickingTask.Id",
+          "note": ""
+        },
+        {
+          "name": "AllocationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "operations.FulfillmentAllocation.Id",
+          "note": ""
+        },
+        {
+          "name": "SourceLocationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Location.Id",
+          "note": ""
+        },
+        {
+          "name": "LotId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "catalog.MaterialLot.Id",
+          "note": ""
+        },
+        {
+          "name": "PlannedBaseQuantity",
+          "nullable": false,
+          "type": "decimal(19,6)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "OPEN, IN_PROGRESS, COMPLETED, CANCELLED"
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "Tarea, ubicación y asignación pertenecen al mismo almacén; ubicación habilitada para Picking.",
+        "Lote pertenece al material del requisito; obligatorio cuando lo exige Material.",
+        "Total de líneas activas/completadas por asignación <= cantidad asignada; positivas.",
+        "Origen/lote/asignación no se editan tras confirmar; corregir requiere reversión y línea nueva.",
+        "CANCELLED solo si no existe confirmación neta; cambiar cantidades nunca puede dejarlas por debajo de lo ya confirmado."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "warehouse.PickConfirmation",
+      "title": "Confirmaciones de Picking",
+      "phase": 2,
+      "description": "Hecho registrado e inmutable; cada confirmación aporta una cantidad.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "TaskLineId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "warehouse.PickingTaskLine.Id",
+          "note": ""
+        },
+        {
+          "name": "BaseQuantity",
+          "nullable": false,
+          "type": "decimal(19,6)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ActorUserId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "CaptureMethod",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "MANUAL, CAMERA, KEYBOARD_SCANNER"
+        },
+        {
+          "name": "ObservedLocationCode",
+          "nullable": true,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ObservedMaterialCode",
+          "nullable": true,
+          "type": "nvarchar(128)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "OccurredAtUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "Cantidad > 0; suma neta por línea <= planeada; respetar escala de unidad base.",
+        "Validar material, ubicación, lote, usuario, estado y bloqueos en el servidor.",
+        "Tiempo efectivo oficial es del servidor; datos capturados no garantizan detección física."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "warehouse.PickReversal",
+      "title": "Reversiones de Picking",
+      "phase": 2,
+      "description": "Reversión completa de una confirmación, conservando el original.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "PickConfirmationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "warehouse.PickConfirmation.Id",
+          "note": ""
+        },
+        {
+          "name": "ActorUserId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "Reason",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "PickConfirmationId"
+        ]
+      ],
+      "rules": [
+        "Solo si no tiene recepción neta en Packing. Una reversión parcial se representa revirtiendo y registrando la parte correcta, todo en una transacción.",
+        "No reversar una reversión ni editar cantidades originales."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "warehouse.PackingReceipt",
+      "title": "Recepción para Packing",
+      "phase": 3,
+      "description": "Cantidad efectivamente recibida desde una confirmación de Picking; admite recepciones parciales.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "PickConfirmationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "warehouse.PickConfirmation.Id",
+          "note": ""
+        },
+        {
+          "name": "PackingLocationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Location.Id",
+          "note": ""
+        },
+        {
+          "name": "BaseQuantity",
+          "nullable": false,
+          "type": "decimal(19,6)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ReceivedBy",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "ReceivedAtUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "Cantidad > 0; recepciones netas <= confirmación de Picking no revertida.",
+        "Puesto PACKING del mismo almacén. Daños/faltantes generan incidencia, no recepción ficticia."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "warehouse.ReceiptReversal",
+      "title": "Reversiones de recepción",
+      "phase": 3,
+      "description": "Corrige una recepción sin borrar su rastro.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "ReceiptId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "warehouse.PackingReceipt.Id",
+          "note": ""
+        },
+        {
+          "name": "ActorUserId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "Reason",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "ReceiptId"
+        ]
+      ],
+      "rules": [
+        "Reversión completa y solo si la recepción no tiene contenido neto en HU."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "warehouse.HandlingUnit",
+      "title": "Unidades de manejo",
+      "phase": 3,
+      "description": "Contenedor operativo identificado de forma única, con material trazable.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "TypeId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.HandlingUnitType.Id",
+          "note": ""
+        },
+        {
+          "name": "WarehouseId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Warehouse.Id",
+          "note": ""
+        },
+        {
+          "name": "DeliverySiteId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.DeliverySite.Id",
+          "note": ""
+        },
+        {
+          "name": "CurrentLocationId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "catalog.Location.Id",
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "OPEN, PACKED, STAGED, LOADED, SHIPPED, VOID"
+        },
+        {
+          "name": "PackedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PackedBy",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [
+        "Código global en esta base, único para siempre; no reutilizar una HU embarcada.",
+        "Una HU puede mezclar líneas/materiales del mismo destino y almacén; no destinos distintos en la primera versión.",
+        "Location del mismo almacén; requerida antes de cargar, nula cuando esté en tráiler. La asignación de carga registra dónde está entonces.",
+        "El contenido se calcula desde HandlingUnitItem menos PackingReversal. Congelado después de confirmar Packing hasta reapertura autorizada; no modificar HU cargada/embarcada."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "warehouse.HandlingUnitItem",
+      "title": "Contenido trazable de HU",
+      "phase": 3,
+      "description": "Cada aporte proviene de una recepción; permite dividir una recepción entre varias HU.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "HandlingUnitId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "warehouse.HandlingUnit.Id",
+          "note": ""
+        },
+        {
+          "name": "ReceiptId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "warehouse.PackingReceipt.Id",
+          "note": ""
+        },
+        {
+          "name": "BaseQuantity",
+          "nullable": false,
+          "type": "decimal(19,6)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "PackedBy",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "Cantidad positiva; aportes no revertidos por recepción <= recepción neta.",
+        "Almacén y destino de HU deben coincidir con el pedido/recepción. Material y lote se derivan de la cadena, sin duplicarlos de forma contradictoria.",
+        "Admite varios aportes de la misma recepción; cada uno tiene identidad propia y puede revertirse una sola vez."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "warehouse.PackingReversal",
+      "title": "Reversiones de contenido",
+      "phase": 3,
+      "description": "Retira completamente un aporte de HU; permite reempacar manteniendo el origen.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "HandlingUnitItemId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "warehouse.HandlingUnitItem.Id",
+          "note": ""
+        },
+        {
+          "name": "ActorUserId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "Reason",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "HandlingUnitItemId"
+        ]
+      ],
+      "rules": [
+        "Reversión completa; HU abierta, sin asignación activa de embarque y con autorización si se reabrió.",
+        "Para dividir/cambiar de HU, revertir el aporte y crear los nuevos aportes en una sola transacción; conservar cantidad."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "warehouse.HandlingUnitMovement",
+      "title": "Movimientos de HU",
+      "phase": 3,
+      "description": "Historial dentro del almacén; no pretende ser un kardex completo de existencias.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "HandlingUnitId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "warehouse.HandlingUnit.Id",
+          "note": ""
+        },
+        {
+          "name": "FromLocationId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "catalog.Location.Id",
+          "note": ""
+        },
+        {
+          "name": "ToLocationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Location.Id",
+          "note": ""
+        },
+        {
+          "name": "ActorUserId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "MovedAtUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Reason",
+          "nullable": true,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "Ubicaciones del mismo almacén; From coincide con posición actual. Solo la colocación inicial puede tener origen nulo.",
+        "No mover a ubicación inactiva, a sí misma o HU cargada. Tipo STAGING para pasar a preembarque.",
+        "Guardar evento y actualizar CurrentLocation en la misma transacción. Carga/descarga se registra en LoadEvent, no como traslado a un almacén ficticio."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "shipping.Shipment",
+      "title": "Embarques",
+      "phase": 4,
+      "description": "Ejecución física del plan aprobado, desde un almacén. Un viaje inicial tiene un solo embarque.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "TripId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "planning.Trip.Id",
+          "note": ""
+        },
+        {
+          "name": "TripRevisionId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "planning.TripRevision.Id",
+          "note": ""
+        },
+        {
+          "name": "TrailerId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "planning.Trailer.Id",
+          "note": ""
+        },
+        {
+          "name": "DriverId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "planning.Driver.Id",
+          "note": ""
+        },
+        {
+          "name": "DockLocationId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "catalog.Location.Id",
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "OPEN, LOADING, CLOSED, CANCELLED"
+        },
+        {
+          "name": "SealNumber",
+          "nullable": true,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "OpenedAtUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ClosedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CancelledAtUtc",
+          "type": "datetime2(3)",
+          "nullable": true,
+          "note": "Solo embarque cancelado. Junto a ClosedAtUtc define ocupación activa de tráiler."
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "TripId"
+        ],
+        [
+          "Id",
+          "TripRevisionId"
+        ]
+      ],
+      "rules": [
+        "Revisión pertenece al viaje y está aprobada. Andén DOCK del almacén de salida.",
+        "Tráiler no puede estar en dos embarques OPEN/LOADING; unicidad de ocupación y control transaccional.",
+        "Requisito de sello/chofer/andén se confirma con el negocio; no exigirlo inventando reglas.",
+        "Cierre congela asignaciones, contenido y plan. No reapertura inicial; una corrección posterior requiere proceso específico.",
+        "OPEN/LOADING: ClosedAtUtc y CancelledAtUtc nulos. CLOSED: solo ClosedAtUtc informado. CANCELLED: solo CancelledAtUtc informado; sin HU activa/cargada. CHECK local vincula fechas y estados.",
+        "Un embarque cancelado no se reutiliza: una nueva salida tendrá otro Trip y otro Shipment en esta primera versión."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "shipping.ShipmentUnit",
+      "title": "Asignación de HU a embarque",
+      "phase": 4,
+      "description": "Conserva asignaciones previas sin permitir doble asignación activa.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "ShipmentId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "shipping.Shipment.Id",
+          "note": ""
+        },
+        {
+          "name": "TripRevisionId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "planning.TripRevision.Id",
+          "note": ""
+        },
+        {
+          "name": "StopId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "planning.TripStop.Id",
+          "note": ""
+        },
+        {
+          "name": "HandlingUnitId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "warehouse.HandlingUnit.Id",
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "ASSIGNED, LOADED, DISPATCHED, RELEASED"
+        },
+        {
+          "name": "AssignedBy",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "AssignedAtUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ReleasedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "FKs compuestas garantizan misma revisión para embarque y parada.",
+        "HU única entre filas con ReleasedAtUtc NULL. Una HU DISPATCHED conserva NULL para impedir reutilización.",
+        "HU empacada/liberada, mismo almacén y destino; cada aporte debe tener compromiso suficiente en TripAllocation para esa parada.",
+        "RELEASED exige fecha y HU no cargada; asignar a otro viaje requiere registrar liberación y validar plan nuevamente."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "shipping.LoadEvent",
+      "title": "Carga y descarga correctiva",
+      "phase": 4,
+      "description": "Hechos que cambian la ubicación entre el almacén y el tráiler; descarga aquí es antes de salida, no entrega al cliente.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "ShipmentUnitId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "shipping.ShipmentUnit.Id",
+          "note": ""
+        },
+        {
+          "name": "EventType",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "LOAD, UNLOAD"
+        },
+        {
+          "name": "WarehouseLocationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "catalog.Location.Id",
+          "note": ""
+        },
+        {
+          "name": "ActorUserId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "OccurredAtUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Reason",
+          "nullable": true,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "LOAD exige ASSIGNED y ubicación real coincidente; UNLOAD exige LOADED y destino válido del mismo almacén.",
+        "No repetir LOAD sin UNLOAD, ni descargar un embarque cerrado. La transacción actualiza HU y ShipmentUnit.",
+        "Carga inversa según secuencia de paradas, con excepciones autorizadas; sin optimización física automática."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "shipping.ShipmentClosure",
+      "title": "Acta de cierre",
+      "phase": 4,
+      "description": "Instantánea histórica de lo que se declaró cargado al cerrar.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "ShipmentId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "shipping.Shipment.Id",
+          "note": ""
+        },
+        {
+          "name": "ClosedBy",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "ClosedAtUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ManifestJson",
+          "nullable": false,
+          "type": "nvarchar(max)",
+          "ref": null,
+          "note": "Instantánea exportable de HU, contenido, destinos, conductor, unidad y sello"
+        },
+        {
+          "name": "ManifestHash",
+          "nullable": false,
+          "type": "binary(32)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsPartial",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PartialApprovalId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "quality.Approval.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [
+        [
+          "ShipmentId"
+        ]
+      ],
+      "rules": [
+        "ManifestJson es copia histórica; relaciones operativas siguen siendo la fuente de integridad.",
+        "No cerrar con HU asignadas sin cargar, incidencias/bloqueos impeditivos o pendientes sin resolución.",
+        "Cierre parcial, si se autoriza, conserva remanente en otro plan; no marca entregado lo que no salió.",
+        "CLOSED/SHIPPED significa salida del almacén, no entrega confirmada al cliente."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "quality.IncidentType",
+      "title": "Tipos de incidencia",
+      "phase": 1,
+      "description": "Catálogo de causas operativas.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "Code",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Name",
+          "nullable": false,
+          "type": "nvarchar(240)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "DefaultSeverity",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "nullable": false,
+          "type": "bit",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Code"
+        ]
+      ],
+      "rules": [],
+      "mutable": true
+    },
+    {
+      "name": "quality.Incident",
+      "title": "Incidencias",
+      "phase": 2,
+      "description": "Una incidencia tiene un objeto principal con FK real; otros datos se obtienen siguiendo sus relaciones.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "TypeId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "quality.IncidentType.Id",
+          "note": ""
+        },
+        {
+          "name": "ImportRunId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "integration.ImportRun.Id",
+          "note": ""
+        },
+        {
+          "name": "OrderLineId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "operations.OrderLine.Id",
+          "note": ""
+        },
+        {
+          "name": "TaskLineId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "warehouse.PickingTaskLine.Id",
+          "note": ""
+        },
+        {
+          "name": "HandlingUnitId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "warehouse.HandlingUnit.Id",
+          "note": "Agregar esta columna y FK en la entrega 3, cuando exista la tabla destino."
+        },
+        {
+          "name": "ShipmentId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "shipping.Shipment.Id",
+          "note": "Agregar esta columna y FK en la entrega 4, cuando exista la tabla destino."
+        },
+        {
+          "name": "TripId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "planning.Trip.Id",
+          "note": ""
+        },
+        {
+          "name": "ReportedBy",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "Severity",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "OPEN, INVESTIGATING, RESOLVED, CANCELLED"
+        },
+        {
+          "name": "Description",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ResolvedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "Exactamente uno de los seis FKs de contexto informado. Evita EntityType/EntityId sin integridad referencial.",
+        "Resolver una incidencia no elimina un bloqueo automáticamente ni corrige cantidades por sí solo."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "quality.IncidentAction",
+      "title": "Seguimiento de incidencias",
+      "phase": 2,
+      "description": "Comentarios, diagnóstico y resolución conservados cronológicamente.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "IncidentId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "quality.Incident.Id",
+          "note": ""
+        },
+        {
+          "name": "ActorUserId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "ActionCode",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Comment",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [],
+      "rules": [],
+      "mutable": false
+    },
+    {
+      "name": "quality.Hold",
+      "title": "Bloqueos operativos",
+      "phase": 2,
+      "description": "Bloquea una línea, una HU o un embarque sin confundir condición con etapa del proceso.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "OrderLineId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "operations.OrderLine.Id",
+          "note": ""
+        },
+        {
+          "name": "HandlingUnitId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "warehouse.HandlingUnit.Id",
+          "note": "Agregar esta columna y FK en la entrega 3, cuando exista la tabla destino."
+        },
+        {
+          "name": "ShipmentId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "shipping.Shipment.Id",
+          "note": "Agregar esta columna y FK en la entrega 4, cuando exista la tabla destino."
+        },
+        {
+          "name": "IncidentId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "quality.Incident.Id",
+          "note": ""
+        },
+        {
+          "name": "Reason",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PlacedBy",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "ReleasedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ReleasedBy",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "ReleaseReason",
+          "nullable": true,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "Exactamente uno de los tres objetos informado; puede haber varios bloqueos simultáneos.",
+        "Liberación exige usuario, motivo y fecha juntos. No borrar el bloqueo.",
+        "Un bloqueo de línea se propaga a sus asignaciones, Picking y HU; HU mixta bloquea su carga completa hasta resolver/separar."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "quality.Approval",
+      "title": "Autorizaciones de excepción",
+      "phase": 2,
+      "description": "Autorización concreta y consumible, no permiso general para saltarse validaciones.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "IncidentId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "quality.Incident.Id",
+          "note": ""
+        },
+        {
+          "name": "OrderLineId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "operations.OrderLine.Id",
+          "note": ""
+        },
+        {
+          "name": "HandlingUnitId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "warehouse.HandlingUnit.Id",
+          "note": "Agregar esta columna y FK en la entrega 3, cuando exista la tabla destino."
+        },
+        {
+          "name": "ShipmentId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "shipping.Shipment.Id",
+          "note": "Agregar esta columna y FK en la entrega 4, cuando exista la tabla destino."
+        },
+        {
+          "name": "TripId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "planning.Trip.Id",
+          "note": ""
+        },
+        {
+          "name": "ActionCode",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "PayloadHash",
+          "nullable": false,
+          "type": "binary(32)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ReviewPayloadJson",
+          "type": "nvarchar(max)",
+          "nullable": false,
+          "note": "Instantánea legible de los parámetros sujetos a aprobación; esquema estricto por ActionCode, sin secretos."
+        },
+        {
+          "name": "ExpectedVersion",
+          "nullable": false,
+          "type": "binary(8)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "RequestedBy",
+          "nullable": false,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "DecidedBy",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "Decision",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": "PENDING, APPROVED, REJECTED, EXPIRED"
+        },
+        {
+          "name": "DecidedAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ExpiresAtUtc",
+          "nullable": true,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Reason",
+          "nullable": false,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ExecutedOperationId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Control de edición concurrente; no es fecha."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "Exactamente uno de OrderLine, HU, Shipment o Trip; Incident es contexto adicional opcional.",
+        "Versión y hash fijan objeto y parámetros aprobados; cualquier cambio invalida la autorización.",
+        "Ejecutar solo APPROVED, vigente, permiso actual y no consumida; ExecutedOperationId único cuando no nulo.",
+        "Separación solicitante/aprobador se valida con el negocio; nunca asumir que toda excepción puede aprobarla cualquier supervisor.",
+        "ReviewPayloadJson y PayloadHash coinciden mediante serialización canónica; la aplicación muestra exactamente estos parámetros al aprobador."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "audit.AuditEvent",
+      "title": "Auditoría",
+      "phase": 1,
+      "description": "Registro de acciones y resultados para investigación; no sustituye las tablas operativas.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable; identity propuesto."
+        },
+        {
+          "name": "OperationId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "ActorUserId",
+          "nullable": true,
+          "type": "bigint",
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "ActionCode",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "EntityType",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "EntityKey",
+          "nullable": false,
+          "type": "nvarchar(128)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Outcome",
+          "nullable": false,
+          "type": "nvarchar(64)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "BeforeJson",
+          "nullable": true,
+          "type": "nvarchar(max)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "AfterJson",
+          "nullable": true,
+          "type": "nvarchar(max)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Reason",
+          "nullable": true,
+          "type": "nvarchar(1000)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CorrelationId",
+          "nullable": false,
+          "type": "uniqueidentifier",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "OccurredAtUtc",
+          "nullable": false,
+          "type": "datetime2(3)",
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en el servidor."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "EntityType/EntityKey es referencia descriptiva de auditoría, no FK ni fuente para decidir una operación.",
+        "Acciones exitosas y auditoría se confirman juntas. Intentos fallidos se registran después del rollback en un registro separado.",
+        "Sin contraseñas, tokens ni cadenas de conexión. Acceso restringido y retención por acordar.",
+        "Solo anexar con cuenta operativa. No afirmar inmutabilidad absoluta frente a administradores de SQL Server."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "planning.CapacityPool",
+      "title": "Capacidad operativa por almacén y proceso",
+      "phase": 2,
+      "description": "Define el grupo de trabajo cuya capacidad se comparte entre pedidos. No es inventario, capacidad del tráiler ni producción industrial.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable."
+        },
+        {
+          "name": "WarehouseId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "catalog.Warehouse.Id",
+          "note": ""
+        },
+        {
+          "name": "Code",
+          "type": "nvarchar(64)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "StageCode",
+          "type": "nvarchar(64)",
+          "nullable": false,
+          "ref": null,
+          "note": "PICKING, PACKING o LOADING"
+        },
+        {
+          "name": "CapacityBasis",
+          "type": "nvarchar(64)",
+          "nullable": false,
+          "ref": null,
+          "note": "BASE_QUANTITY o STANDARD_MINUTES"
+        },
+        {
+          "name": "CapacityUnitId",
+          "type": "bigint",
+          "nullable": true,
+          "ref": "catalog.UnitOfMeasure.Id",
+          "note": "Obligatoria solo en BASE_QUANTITY"
+        },
+        {
+          "name": "TimeZoneId",
+          "type": "nvarchar(240)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "IsActive",
+          "type": "bit",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Versión de edición, no fecha."
+        }
+      ],
+      "unique": [
+        [
+          "WarehouseId",
+          "Code"
+        ],
+        [
+          "WarehouseId",
+          "StageCode"
+        ]
+      ],
+      "rules": [
+        "Primera versión: un pool por almacén/proceso. Dos pedidos compiten por la misma capacidad; no asignar 600 a cada pedido.",
+        "BASE_QUANTITY exige CapacityUnitId; STANDARD_MINUTES exige NULL. La base/unidad no se cambia tras tener historia.",
+        "Productos en unidades incompatibles o con esfuerzo muy distinto requieren estándares en minutos; no sumar KG y PZA.",
+        "Si el personal se comparte entre procesos, repartir explícitamente su tiempo/capacidad; no contabilizar la misma jornada completa en cada pool."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "planning.CapacityDay",
+      "title": "Calendario y capacidad efectiva",
+      "phase": 2,
+      "description": "Una jornada local con capacidad propia. Fines de semana, festivos, ausencias y horas extra se representan explícitamente.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable."
+        },
+        {
+          "name": "PoolId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "planning.CapacityPool.Id",
+          "note": ""
+        },
+        {
+          "name": "WorkDate",
+          "type": "date",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "WindowStartUtc",
+          "type": "datetime2(3)",
+          "nullable": true,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "WindowEndUtc",
+          "type": "datetime2(3)",
+          "nullable": true,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "BaseCapacity",
+          "type": "decimal(19,6)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ExtraCapacity",
+          "type": "decimal(19,6)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "UnavailableCapacity",
+          "type": "decimal(19,6)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "type": "nvarchar(64)",
+          "nullable": false,
+          "ref": null,
+          "note": "OPEN o CLOSED"
+        },
+        {
+          "name": "ClosedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": true,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ChangeReason",
+          "type": "nvarchar(1000)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ChangedBy",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Versión de edición, no fecha."
+        }
+      ],
+      "unique": [
+        [
+          "PoolId",
+          "WorkDate"
+        ],
+        [
+          "Id",
+          "PoolId"
+        ]
+      ],
+      "rules": [
+        "Capacidad efectiva = BaseCapacity + ExtraCapacity - UnavailableCapacity. Componentes no negativos; indisponible no supera base más extra.",
+        "Capacidad efectiva positiva requiere inicio y fin y fin > inicio; fecha local de inicio coincide con WorkDate. Calendario faltante es desconocido, no ilimitado.",
+        "Un día no laborable conserva fila con capacidad cero. No trasladar capacidad no usada al siguiente día.",
+        "Cambios de capacidad requieren permiso, motivo, RowVersion y auditoría. Si bajan por debajo de compromisos existentes, mostrar sobrecarga y replanear antes de aprobar más trabajo.",
+        "CLOSED exige ClosedAtUtc; OPEN exige NULL. Cerrar no marca pedidos completos ni borra reservas pendientes.",
+        "La capacidad es una restricción de planeación, no motivo para ocultar ejecución física ya ocurrida. Desviaciones se registran y revisan."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "planning.WorkStandardVersion",
+      "title": "Esfuerzo por producto y proceso",
+      "phase": 2,
+      "description": "Factor congelado para convertir cantidad base de material en unidades de capacidad.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable."
+        },
+        {
+          "name": "PoolId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "planning.CapacityPool.Id",
+          "note": ""
+        },
+        {
+          "name": "MaterialId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "catalog.Material.Id",
+          "note": ""
+        },
+        {
+          "name": "VersionNumber",
+          "type": "int",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CapacityPerBaseUnit",
+          "type": "decimal(28,12)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ValidFromUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "Description",
+          "type": "nvarchar(240)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en servidor."
+        }
+      ],
+      "unique": [
+        [
+          "PoolId",
+          "MaterialId",
+          "VersionNumber"
+        ],
+        [
+          "Id",
+          "PoolId"
+        ]
+      ],
+      "rules": [
+        "Factor > 0 y versión positiva. En BASE_QUANTITY exige unidad base del material igual a la unidad del pool y factor 1.",
+        "En STANDARD_MINUTES el factor expresa minutos estándar por unidad base, no duración real medida.",
+        "Nueva productividad crea otra versión; reservas existentes conservan el factor aprobado. Usar siempre conversiones decimales sin redondeo oculto.",
+        "Capacidad diaria disponible y estándar deben usar la misma unidad de carga de trabajo."
+      ],
+      "mutable": false
+    },
+    {
+      "name": "planning.CapacityBooking",
+      "title": "Programación de cantidad por jornada",
+      "phase": 2,
+      "description": "Reserva una porción de una asignación de surtido para una jornada y proceso, manteniendo la identidad del pedido.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable."
+        },
+        {
+          "name": "AllocationId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "operations.FulfillmentAllocation.Id",
+          "note": ""
+        },
+        {
+          "name": "PoolId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "planning.CapacityPool.Id",
+          "note": ""
+        },
+        {
+          "name": "CapacityDayId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "planning.CapacityDay.Id",
+          "note": ""
+        },
+        {
+          "name": "WorkStandardVersionId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "planning.WorkStandardVersion.Id",
+          "note": ""
+        },
+        {
+          "name": "PlannedBaseQuantity",
+          "type": "decimal(19,6)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ReleasedBaseQuantity",
+          "type": "decimal(19,6)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "RescheduledFromId",
+          "type": "bigint",
+          "nullable": true,
+          "ref": "planning.CapacityBooking.Id",
+          "note": ""
+        },
+        {
+          "name": "Status",
+          "type": "nvarchar(64)",
+          "nullable": false,
+          "ref": null,
+          "note": "DRAFT, COMMITTED, COMPLETED, CANCELLED"
+        },
+        {
+          "name": "ApprovedBy",
+          "type": "bigint",
+          "nullable": true,
+          "ref": "security.AppUser.Id",
+          "note": ""
+        },
+        {
+          "name": "ApprovedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": true,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "ReleaseReason",
+          "type": "nvarchar(1000)",
+          "nullable": true,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "LastOperationId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en servidor."
+        },
+        {
+          "name": "UpdatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false
+        },
+        {
+          "name": "RowVersion",
+          "type": "rowversion",
+          "nullable": false,
+          "note": "Versión de edición, no fecha."
+        }
+      ],
+      "unique": [
+        [
+          "Id",
+          "PoolId"
+        ]
+      ],
+      "rules": [
+        "FKs compuestas aseguran mismo pool para día y estándar. Material y almacén deben corresponder a la asignación.",
+        "PlannedBaseQuantity > 0; 0 <= ReleasedBaseQuantity <= PlannedBaseQuantity. Tras aprobar, no editar cantidad original: liberar pendiente y crear otra reserva.",
+        "DRAFT no consume capacidad. Aprobar exige fecha abierta, cupo, elegibilidad y comprobación atómica de todas las reservas afectadas.",
+        "Por asignación y proceso, suma de cantidades planeadas menos liberadas de reservas COMMITTED/COMPLETED <= cantidad asignada. No sumar procesos diferentes entre sí.",
+        "COMPLETED conserva su cantidad y consumo histórico. CANCELLED exige liberar toda la cantidad y no tener ejecución buena neta.",
+        "No liberar cantidad ejecutada buena ni moverla de fecha. Reprogramar solo el restante, con liberación y nueva reserva en la misma transacción.",
+        "RescheduledFromId apunta a una reserva anterior de la misma asignación y proceso; sin ciclos; suma de cantidades iniciales de hijas no supera lo liberado del origen.",
+        "Un faltante semanal sigue siendo el mismo OrderLine/Allocation. No crear un nuevo pedido ni volver a sumar su demanda.",
+        "La fecha de esta reserva es operativa. No sustituye la fecha solicitada del pedido ni la fecha prometida de entrega al cliente."
+      ],
+      "mutable": true
+    },
+    {
+      "name": "planning.CapacityExecution",
+      "title": "Consumo de capacidad vinculado a hechos",
+      "phase": 2,
+      "description": "Relaciona trabajo registrado con la reserva y con el día real de ejecución, aunque haya ocurrido después de lo planeado.",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "note": "Identificador interno estable."
+        },
+        {
+          "name": "BookingId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "planning.CapacityBooking.Id",
+          "note": ""
+        },
+        {
+          "name": "PoolId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "planning.CapacityPool.Id",
+          "note": ""
+        },
+        {
+          "name": "ActualCapacityDayId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "planning.CapacityDay.Id",
+          "note": ""
+        },
+        {
+          "name": "PickConfirmationId",
+          "type": "bigint",
+          "nullable": true,
+          "ref": "warehouse.PickConfirmation.Id",
+          "note": ""
+        },
+        {
+          "name": "HandlingUnitItemId",
+          "type": "bigint",
+          "nullable": true,
+          "ref": "warehouse.HandlingUnitItem.Id",
+          "note": "Agregar esta columna y FK en entrega 3"
+        },
+        {
+          "name": "LoadEventId",
+          "type": "bigint",
+          "nullable": true,
+          "ref": "shipping.LoadEvent.Id",
+          "note": "Agregar esta columna y FK en entrega 4"
+        },
+        {
+          "name": "BaseQuantity",
+          "type": "decimal(19,6)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "UsedStandardCapacity",
+          "type": "decimal(19,6)",
+          "nullable": false,
+          "ref": null,
+          "note": ""
+        },
+        {
+          "name": "OperationId",
+          "type": "bigint",
+          "nullable": false,
+          "ref": "platform.OperationRequest.Id",
+          "note": ""
+        },
+        {
+          "name": "CreatedAtUtc",
+          "type": "datetime2(3)",
+          "nullable": false,
+          "note": "Momento de registro en servidor."
+        }
+      ],
+      "unique": [],
+      "rules": [
+        "FKs compuestas aseguran mismo pool en reserva y jornada real. El día real corresponde al momento del hecho, no se retrofecha para ocultar atraso.",
+        "Contexto PICKING: solo PickConfirmationId. PACKING: solo HandlingUnitItemId. LOADING: LoadEventId de tipo LOAD y HandlingUnitItemId. Validar CHECK de combinación y proceso del pool.",
+        "El hecho pertenece a la misma asignación/material/almacén; en carga, el aporte HU debe estar dentro de la HU del LoadEvent.",
+        "BaseQuantity > 0; suma de enlaces a un hecho (o aporte dentro de LOAD) no supera su cantidad. Un hecho puede dividirse entre reservas compatibles sin contabilizarse dos veces.",
+        "UsedStandardCapacity = BaseQuantity por factor congelado de la reserva. Es carga estándar consumida, no medición automática de minutos de operario.",
+        "La ejecución buena se deriva del hecho y sus reversiones. Una reversión de negocio no devuelve tiempo de trabajo consumido; reempaque/retrabajo consume capacidad adicional.",
+        "La ejecución reduce cantidad pendiente de su reserva y se carga a ActualCapacityDayId. No sumar reserva original completa más todo lo ejecutado.",
+        "Insertar junto con el hecho operativo y resultado idempotente. Un reintento no crea otro enlace ni vuelve a consumir cupo.",
+        "No editar/borrar el consumo histórico. Si se corrige atribución de tiempo o capacidad, definir ajuste auditable específico antes de implementarlo."
+      ],
+      "mutable": false
+    }
+  ],
+  "compositeRefs": [
+    {
+      "from": "operations.SalesOrder",
+      "cols": [
+        "CurrentRevisionId",
+        "Id"
+      ],
+      "to": "operations.OrderRevision",
+      "target": [
+        "Id",
+        "OrderId"
+      ]
+    },
+    {
+      "from": "operations.OrderLineRevision",
+      "cols": [
+        "OrderRevisionId",
+        "OrderId"
+      ],
+      "to": "operations.OrderRevision",
+      "target": [
+        "Id",
+        "OrderId"
+      ]
+    },
+    {
+      "from": "operations.OrderLineRevision",
+      "cols": [
+        "OrderLineId",
+        "OrderId"
+      ],
+      "to": "operations.OrderLine",
+      "target": [
+        "Id",
+        "OrderId"
+      ]
+    },
+    {
+      "from": "operations.FulfillmentAllocation",
+      "cols": [
+        "OrderLineRevisionId",
+        "OrderLineId"
+      ],
+      "to": "operations.OrderLineRevision",
+      "target": [
+        "Id",
+        "OrderLineId"
+      ]
+    },
+    {
+      "from": "planning.Trip",
+      "cols": [
+        "CurrentRevisionId",
+        "Id"
+      ],
+      "to": "planning.TripRevision",
+      "target": [
+        "Id",
+        "TripId"
+      ]
+    },
+    {
+      "from": "shipping.Shipment",
+      "cols": [
+        "TripRevisionId",
+        "TripId"
+      ],
+      "to": "planning.TripRevision",
+      "target": [
+        "Id",
+        "TripId"
+      ]
+    },
+    {
+      "from": "shipping.ShipmentUnit",
+      "cols": [
+        "ShipmentId",
+        "TripRevisionId"
+      ],
+      "to": "shipping.Shipment",
+      "target": [
+        "Id",
+        "TripRevisionId"
+      ]
+    },
+    {
+      "from": "shipping.ShipmentUnit",
+      "cols": [
+        "StopId",
+        "TripRevisionId"
+      ],
+      "to": "planning.TripStop",
+      "target": [
+        "Id",
+        "TripRevisionId"
+      ]
+    },
+    {
+      "from": "integration.ImportRow",
+      "cols": [
+        "OrderResultId",
+        "RunId"
+      ],
+      "to": "integration.ImportOrderResult",
+      "target": [
+        "Id",
+        "RunId"
+      ]
+    },
+    {
+      "from": "integration.ImportError",
+      "cols": [
+        "RowId",
+        "RunId"
+      ],
+      "to": "integration.ImportRow",
+      "target": [
+        "Id",
+        "RunId"
+      ]
+    },
+    {
+      "from": "catalog.Location",
+      "cols": [
+        "ParentLocationId",
+        "WarehouseId"
+      ],
+      "to": "catalog.Location",
+      "target": [
+        "Id",
+        "WarehouseId"
+      ]
+    },
+    {
+      "from": "planning.CapacityBooking",
+      "cols": [
+        "CapacityDayId",
+        "PoolId"
+      ],
+      "to": "planning.CapacityDay",
+      "target": [
+        "Id",
+        "PoolId"
+      ]
+    },
+    {
+      "from": "planning.CapacityBooking",
+      "cols": [
+        "WorkStandardVersionId",
+        "PoolId"
+      ],
+      "to": "planning.WorkStandardVersion",
+      "target": [
+        "Id",
+        "PoolId"
+      ]
+    },
+    {
+      "from": "planning.CapacityExecution",
+      "cols": [
+        "BookingId",
+        "PoolId"
+      ],
+      "to": "planning.CapacityBooking",
+      "target": [
+        "Id",
+        "PoolId"
+      ]
+    },
+    {
+      "from": "planning.CapacityExecution",
+      "cols": [
+        "ActualCapacityDayId",
+        "PoolId"
+      ],
+      "to": "planning.CapacityDay",
+      "target": [
+        "Id",
+        "PoolId"
+      ]
+    }
+  ],
+  "filteredUnique": [
+    {
+      "table": "planning.Driver",
+      "cols": [
+        "UserId"
+      ],
+      "filter": "UserId IS NOT NULL"
+    },
+    {
+      "table": "quality.Approval",
+      "cols": [
+        "ExecutedOperationId"
+      ],
+      "filter": "ExecutedOperationId IS NOT NULL"
+    },
+    {
+      "table": "shipping.ShipmentUnit",
+      "cols": [
+        "HandlingUnitId"
+      ],
+      "filter": "ReleasedAtUtc IS NULL"
+    },
+    {
+      "table": "shipping.Shipment",
+      "cols": [
+        "TrailerId"
+      ],
+      "filter": "ClosedAtUtc IS NULL AND CancelledAtUtc IS NULL"
+    },
+    {
+      "table": "planning.CapacityExecution",
+      "cols": [
+        "BookingId",
+        "PickConfirmationId"
+      ],
+      "filter": "PickConfirmationId IS NOT NULL"
+    },
+    {
+      "table": "planning.CapacityExecution",
+      "cols": [
+        "BookingId",
+        "HandlingUnitItemId"
+      ],
+      "filter": "HandlingUnitItemId IS NOT NULL AND LoadEventId IS NULL"
+    },
+    {
+      "table": "planning.CapacityExecution",
+      "cols": [
+        "BookingId",
+        "LoadEventId",
+        "HandlingUnitItemId"
+      ],
+      "filter": "LoadEventId IS NOT NULL"
+    }
+  ],
+  "changeNote": "Planeación por capacidad, calendario y arrastre de pendientes; sin SQL ejecutado."
+}

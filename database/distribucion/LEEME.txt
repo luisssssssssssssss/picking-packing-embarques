@@ -1,0 +1,45 @@
+﻿BASE DE DESARROLLO - Picking, Packing y Embarques - version 0.2
+Generado el 29 de septiembre de 2026.
+
+NECESITAS
+- Motor Microsoft SQL Server instalado; se probo con SQL Server 2025.
+- SQL Server Management Studio (SSMS).
+- Un usuario con permiso para crear la base y sus objetos.
+Para ejecutar este archivo SQL no necesitas Python ni ODBC.
+
+PASOS
+1. Extrae el ZIP en tu computadora.
+2. Abre SSMS y conectate a TU instancia local con tus propias credenciales.
+3. Abre crear_base_desarrollo.sql.
+4. Ejecuta TODO el archivo con F5, sin seleccionar solamente una parte.
+5. Debe indicar: Instalacion 0.2 terminada: 68 tablas y catalogos iniciales.
+6. Actualiza Databases/Bases de datos y abre PickingPackingEmbarques_Dev.
+Si tu instancia tiene nombre, usa ese nombre al conectarte; no tiene que ser igual al del otro desarrollador.
+
+CONTENIDO
+68 tablas, relaciones, restricciones, indices y registro de migraciones.
+Incluye 6 roles, 3 unidades de medida y 2 tipos de unidad de manejo.
+No contiene usuarios habilitados, claves, pedidos, archivos SAP ni datos privados.
+Es la misma estructura inicial del proyecto; NO es una copia de sus datos.
+Si la misma version ya existe, valida el historial y conserva sus registros.
+Si encuentra objetos ajenos o un historial distinto, se detiene.
+Si falla, comparte el mensaje de error; no borres bases para reintentar.
+No ejecutar fragmentos sueltos ni cambiar los scripts que ya se aplicaron.
+
+DESPUES
+Para trabajar en el backend: repositorio actualizado, Python, dependencias de
+backend/requirements.txt, ODBC Driver 18 y archivo backend/.env propio.
+El historial es compatible con el inicializador Python del repositorio.
+Git y este ZIP no sincronizan los registros entre computadoras.
+Las siguientes versiones se compartiran por Git mediante migraciones.
+Este paquete no implementa API, importador, pantallas ni reglas operativas.
+
+SOBRE CSV Y PYTHON
+El archivo exportado de SAP entra al importador Python.
+Python valida, registra errores y escribe pedidos en SQL Server.
+Un CSV de pedidos no llena todas las tablas:
+- Catalogos: productos, clientes, almacenes y ubicaciones se preparan aparte
+  o mediante importaciones controladas.
+- Planeacion: capacidades, calendario, rutas y prioridades se configuran.
+- Operacion: picking, packing, tarimas, carga e incidencias se generan al usar la app.
+Aun no existe el CSV real ni un contrato definitivo de columnas.

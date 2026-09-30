@@ -1,0 +1,2 @@
+NumeroPedido,NumeroLinea,Cliente,Destino,Material,Cantidad,UnidadMedida,FechaEntregaSolicitada
+450001,10,CLI-A,DEST-A,MAT-001,1.5,PZA,2026-10-05

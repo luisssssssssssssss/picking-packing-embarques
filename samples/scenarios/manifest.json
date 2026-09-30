@@ -1,0 +1,94 @@
+{
+  "fictional": true,
+  "profile": {
+    "encoding": "utf-8",
+    "csv_delimiter": ",",
+    "txt_delimiter": "|",
+    "date_format": "YYYY-MM-DD",
+    "decimal_separator": ".",
+    "has_header": true,
+    "required_columns": [
+      "NumeroPedido",
+      "NumeroLinea",
+      "Cliente",
+      "Destino",
+      "Material",
+      "Cantidad",
+      "UnidadMedida",
+      "FechaEntregaSolicitada"
+    ]
+  },
+  "fixtures": [
+    {
+      "path": "csv/pedidos_correctos.csv",
+      "expected_validation_errors": []
+    },
+    {
+      "path": "csv/pedidos_repetidos.csv",
+      "expected_validation_errors": []
+    },
+    {
+      "path": "csv/pedidos_duplicados.csv",
+      "expected_validation_errors": [
+        "DUPLICATE_LINE"
+      ]
+    },
+    {
+      "path": "csv/pedidos_con_errores.csv",
+      "expected_validation_errors": [
+        "NON_POSITIVE_QUANTITY",
+        "MISSING_MATERIAL",
+        "UNKNOWN_MATERIAL",
+        "INVALID_DATE"
+      ]
+    },
+    {
+      "path": "csv/pedidos_actualizados.csv",
+      "expected_validation_errors": []
+    },
+    {
+      "path": "csv/pedidos_columnas_faltantes.csv",
+      "expected_validation_errors": [
+        "MISSING_COLUMNS"
+      ]
+    },
+    {
+      "path": "csv/pedidos_vacio.csv",
+      "expected_validation_errors": [
+        "EMPTY_FILE"
+      ]
+    },
+    {
+      "path": "csv/pedidos_cantidad_cero.csv",
+      "expected_validation_errors": [
+        "NON_POSITIVE_QUANTITY"
+      ]
+    },
+    {
+      "path": "csv/pedidos_fraccionarios.csv",
+      "expected_validation_errors": [
+        "INVALID_QUANTITY_SCALE"
+      ]
+    },
+    {
+      "path": "csv/pedidos_destino_incorrecto.csv",
+      "expected_validation_errors": [
+        "DESTINATION_CUSTOMER_MISMATCH"
+      ]
+    },
+    {
+      "path": "csv/pedidos_codigos_con_ceros.csv",
+      "expected_validation_errors": []
+    },
+    {
+      "path": "txt/pedidos.txt",
+      "expected_validation_errors": []
+    }
+  ],
+  "duplicate_content_pair": [
+    "csv/pedidos_correctos.csv",
+    "csv/pedidos_repetidos.csv"
+  ],
+  "update_requires_review": "csv/pedidos_actualizados.csv",
+  "limitations": "Errores de estas muestras comprobables localmente; decisiones de importación y operaciones se probarán cuando existan sus servicios."
+}

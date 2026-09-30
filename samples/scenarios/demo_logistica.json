@@ -1,0 +1,551 @@
+{
+  "metadata": {
+    "fixture_id": "DEMO-LOGISTICA-001",
+    "schema_version": "0.1",
+    "fictional": true,
+    "format": "readable_scenario_v1",
+    "description": "Estado esperado después del cierre del primer viaje. Segundo viaje todavía sin ejecución.",
+    "not_sql_seed": true,
+    "limitations": [
+      "Colecciones simplificadas por códigos, no filas completas del esquema SQL.",
+      "Sin cuentas, contraseñas, permisos reales ni inventario físico.",
+      "El escenario y sus comprobaciones no ejecutan servicios operativos ni transacciones SQL.",
+      "Direcciones, distancias, fechas, personas y códigos son ficticios."
+    ]
+  },
+  "warehouses": [
+    {
+      "code": "ALM-A",
+      "name": "Almacén A de demostración"
+    },
+    {
+      "code": "ALM-B",
+      "name": "Almacén B de demostración"
+    }
+  ],
+  "locations": [
+    {
+      "code": "A-R01",
+      "warehouse": "ALM-A",
+      "type": "BIN"
+    },
+    {
+      "code": "A-PACK",
+      "warehouse": "ALM-A",
+      "type": "PACKING"
+    },
+    {
+      "code": "A-STG",
+      "warehouse": "ALM-A",
+      "type": "STAGING"
+    },
+    {
+      "code": "A-DOCK",
+      "warehouse": "ALM-A",
+      "type": "DOCK"
+    },
+    {
+      "code": "B-R01",
+      "warehouse": "ALM-B",
+      "type": "BIN"
+    },
+    {
+      "code": "B-PACK",
+      "warehouse": "ALM-B",
+      "type": "PACKING"
+    },
+    {
+      "code": "B-STG",
+      "warehouse": "ALM-B",
+      "type": "STAGING"
+    },
+    {
+      "code": "B-DOCK",
+      "warehouse": "ALM-B",
+      "type": "DOCK"
+    }
+  ],
+  "customers": [
+    {
+      "code": "CLI-A",
+      "name": "Cliente ficticio A"
+    },
+    {
+      "code": "CLI-B",
+      "name": "Cliente ficticio B"
+    },
+    {
+      "code": "CLI-C",
+      "name": "Cliente ficticio C"
+    }
+  ],
+  "destinations": [
+    {
+      "code": "DEST-A",
+      "customer": "CLI-A",
+      "name": "Planta ficticia A",
+      "address": "Calle de Ejemplo 1, Ciudad Demo"
+    },
+    {
+      "code": "DEST-B",
+      "customer": "CLI-B",
+      "name": "Planta ficticia B",
+      "address": "Calle de Ejemplo 2, Ciudad Demo"
+    },
+    {
+      "code": "DEST-C",
+      "customer": "CLI-C",
+      "name": "Planta ficticia C",
+      "address": "Calle de Ejemplo 3, Ciudad Demo"
+    }
+  ],
+  "units": [
+    {
+      "code": "PZA",
+      "quantity_scale": 0
+    }
+  ],
+  "materials": [
+    {
+      "code": "MAT-001",
+      "description": "Soporte de prueba",
+      "base_unit": "PZA",
+      "requires_lot": true
+    },
+    {
+      "code": "MAT-002",
+      "description": "Tornillo de prueba",
+      "base_unit": "PZA",
+      "requires_lot": true
+    },
+    {
+      "code": "MAT-003",
+      "description": "Ensamble de prueba",
+      "base_unit": "PZA",
+      "requires_lot": true
+    }
+  ],
+  "lots": [
+    {
+      "code": "LOTE-001",
+      "material": "MAT-001"
+    },
+    {
+      "code": "LOTE-002",
+      "material": "MAT-002"
+    },
+    {
+      "code": "LOTE-003",
+      "material": "MAT-003"
+    }
+  ],
+  "orders": [
+    {
+      "NumeroPedido": "450001",
+      "NumeroLinea": "10",
+      "Cliente": "CLI-A",
+      "Destino": "DEST-A",
+      "Material": "MAT-001",
+      "Cantidad": "100",
+      "UnidadMedida": "PZA",
+      "FechaEntregaSolicitada": "2026-10-05"
+    },
+    {
+      "NumeroPedido": "450001",
+      "NumeroLinea": "20",
+      "Cliente": "CLI-A",
+      "Destino": "DEST-A",
+      "Material": "MAT-002",
+      "Cantidad": "20",
+      "UnidadMedida": "PZA",
+      "FechaEntregaSolicitada": "2026-10-05"
+    },
+    {
+      "NumeroPedido": "450002",
+      "NumeroLinea": "10",
+      "Cliente": "CLI-B",
+      "Destino": "DEST-B",
+      "Material": "MAT-002",
+      "Cantidad": "80",
+      "UnidadMedida": "PZA",
+      "FechaEntregaSolicitada": "2026-10-05"
+    },
+    {
+      "NumeroPedido": "450003",
+      "NumeroLinea": "10",
+      "Cliente": "CLI-C",
+      "Destino": "DEST-C",
+      "Material": "MAT-003",
+      "Cantidad": "50",
+      "UnidadMedida": "PZA",
+      "FechaEntregaSolicitada": "2026-10-05"
+    }
+  ],
+  "allocations": [
+    {
+      "code": "ASG-001",
+      "order": "450001",
+      "line": "10",
+      "warehouse": "ALM-A",
+      "quantity": "60",
+      "source_location": "A-R01",
+      "lot": "LOTE-001"
+    },
+    {
+      "code": "ASG-002",
+      "order": "450001",
+      "line": "10",
+      "warehouse": "ALM-B",
+      "quantity": "40",
+      "source_location": "B-R01",
+      "lot": "LOTE-001"
+    },
+    {
+      "code": "ASG-003",
+      "order": "450001",
+      "line": "20",
+      "warehouse": "ALM-A",
+      "quantity": "20",
+      "source_location": "A-R01",
+      "lot": "LOTE-002"
+    },
+    {
+      "code": "ASG-004",
+      "order": "450002",
+      "line": "10",
+      "warehouse": "ALM-A",
+      "quantity": "80",
+      "source_location": "A-R01",
+      "lot": "LOTE-002"
+    },
+    {
+      "code": "ASG-005",
+      "order": "450003",
+      "line": "10",
+      "warehouse": "ALM-A",
+      "quantity": "50",
+      "source_location": "A-R01",
+      "lot": "LOTE-003"
+    }
+  ],
+  "trips": [
+    {
+      "code": "VIA-A-001",
+      "warehouse": "ALM-A",
+      "trailer": "TR-DEMO-A",
+      "status": "CLOSED",
+      "stops": [
+        {
+          "code": "PAR-A-1",
+          "sequence": 1,
+          "destination": "DEST-A",
+          "reference_km_from_previous": "15"
+        },
+        {
+          "code": "PAR-A-2",
+          "sequence": 2,
+          "destination": "DEST-B",
+          "reference_km_from_previous": "25"
+        },
+        {
+          "code": "PAR-A-3",
+          "sequence": 3,
+          "destination": "DEST-C",
+          "reference_km_from_previous": "20"
+        }
+      ]
+    },
+    {
+      "code": "VIA-B-001",
+      "warehouse": "ALM-B",
+      "trailer": "TR-DEMO-B",
+      "status": "RELEASED",
+      "stops": [
+        {
+          "code": "PAR-B-1",
+          "sequence": 1,
+          "destination": "DEST-A",
+          "reference_km_from_previous": "35"
+        }
+      ]
+    }
+  ],
+  "trip_allocations": [
+    {
+      "allocation": "ASG-001",
+      "stop": "PAR-A-1",
+      "quantity": "60"
+    },
+    {
+      "allocation": "ASG-002",
+      "stop": "PAR-B-1",
+      "quantity": "40"
+    },
+    {
+      "allocation": "ASG-003",
+      "stop": "PAR-A-1",
+      "quantity": "20"
+    },
+    {
+      "allocation": "ASG-004",
+      "stop": "PAR-A-2",
+      "quantity": "80"
+    },
+    {
+      "allocation": "ASG-005",
+      "stop": "PAR-A-3",
+      "quantity": "50"
+    }
+  ],
+  "picking_lines": [
+    {
+      "code": "PICK-001",
+      "allocation": "ASG-001",
+      "planned_quantity": "60"
+    },
+    {
+      "code": "PICK-002",
+      "allocation": "ASG-002",
+      "planned_quantity": "40"
+    },
+    {
+      "code": "PICK-003",
+      "allocation": "ASG-003",
+      "planned_quantity": "20"
+    },
+    {
+      "code": "PICK-004",
+      "allocation": "ASG-004",
+      "planned_quantity": "80"
+    },
+    {
+      "code": "PICK-005",
+      "allocation": "ASG-005",
+      "planned_quantity": "50"
+    }
+  ],
+  "pick_confirmations": [
+    {
+      "code": "CONF-001",
+      "picking_line": "PICK-001",
+      "quantity": "60",
+      "command_key": "DEMO-CMD-PICK-001"
+    },
+    {
+      "code": "CONF-003",
+      "picking_line": "PICK-003",
+      "quantity": "20",
+      "command_key": "DEMO-CMD-PICK-003"
+    },
+    {
+      "code": "CONF-004",
+      "picking_line": "PICK-004",
+      "quantity": "80",
+      "command_key": "DEMO-CMD-PICK-004"
+    },
+    {
+      "code": "CONF-005",
+      "picking_line": "PICK-005",
+      "quantity": "50",
+      "command_key": "DEMO-CMD-PICK-005"
+    }
+  ],
+  "packing_receipts": [
+    {
+      "code": "REC-001",
+      "confirmation": "CONF-001",
+      "packing_location": "A-PACK",
+      "quantity": "60"
+    },
+    {
+      "code": "REC-003",
+      "confirmation": "CONF-003",
+      "packing_location": "A-PACK",
+      "quantity": "20"
+    },
+    {
+      "code": "REC-004",
+      "confirmation": "CONF-004",
+      "packing_location": "A-PACK",
+      "quantity": "80"
+    },
+    {
+      "code": "REC-005",
+      "confirmation": "CONF-005",
+      "packing_location": "A-PACK",
+      "quantity": "50"
+    }
+  ],
+  "handling_units": [
+    {
+      "code": "HU-DEMO-A",
+      "warehouse": "ALM-A",
+      "destination": "DEST-A",
+      "status": "SHIPPED",
+      "current_location": null
+    },
+    {
+      "code": "HU-DEMO-B",
+      "warehouse": "ALM-A",
+      "destination": "DEST-B",
+      "status": "SHIPPED",
+      "current_location": null
+    },
+    {
+      "code": "HU-DEMO-C",
+      "warehouse": "ALM-A",
+      "destination": "DEST-C",
+      "status": "SHIPPED",
+      "current_location": null
+    }
+  ],
+  "hu_items": [
+    {
+      "code": "ITEM-001",
+      "hu": "HU-DEMO-A",
+      "receipt": "REC-001",
+      "quantity": "60"
+    },
+    {
+      "code": "ITEM-003",
+      "hu": "HU-DEMO-A",
+      "receipt": "REC-003",
+      "quantity": "20"
+    },
+    {
+      "code": "ITEM-004",
+      "hu": "HU-DEMO-B",
+      "receipt": "REC-004",
+      "quantity": "80"
+    },
+    {
+      "code": "ITEM-005",
+      "hu": "HU-DEMO-C",
+      "receipt": "REC-005",
+      "quantity": "50"
+    }
+  ],
+  "shipments": [
+    {
+      "code": "EMB-A-001",
+      "trip": "VIA-A-001",
+      "status": "CLOSED",
+      "closed_at_utc": "2026-10-05T17:00:00Z",
+      "seal": "SELLO-DEMO-001"
+    }
+  ],
+  "shipment_units": [
+    {
+      "shipment": "EMB-A-001",
+      "hu": "HU-DEMO-A",
+      "stop": "PAR-A-1",
+      "status": "DISPATCHED"
+    },
+    {
+      "shipment": "EMB-A-001",
+      "hu": "HU-DEMO-B",
+      "stop": "PAR-A-2",
+      "status": "DISPATCHED"
+    },
+    {
+      "shipment": "EMB-A-001",
+      "hu": "HU-DEMO-C",
+      "stop": "PAR-A-3",
+      "status": "DISPATCHED"
+    }
+  ],
+  "load_events": [
+    {
+      "sequence": 1,
+      "hu": "HU-DEMO-C",
+      "shipment": "EMB-A-001",
+      "type": "LOAD"
+    },
+    {
+      "sequence": 2,
+      "hu": "HU-DEMO-B",
+      "shipment": "EMB-A-001",
+      "type": "LOAD"
+    },
+    {
+      "sequence": 3,
+      "hu": "HU-DEMO-A",
+      "shipment": "EMB-A-001",
+      "type": "LOAD"
+    }
+  ],
+  "expected_line_progress": [
+    {
+      "order": "450001",
+      "line": "10",
+      "requested": "100",
+      "picked": "60",
+      "received": "60",
+      "packed": "60",
+      "shipped": "60",
+      "pending_shipping": "40"
+    },
+    {
+      "order": "450001",
+      "line": "20",
+      "requested": "20",
+      "picked": "20",
+      "received": "20",
+      "packed": "20",
+      "shipped": "20",
+      "pending_shipping": "0"
+    },
+    {
+      "order": "450002",
+      "line": "10",
+      "requested": "80",
+      "picked": "80",
+      "received": "80",
+      "packed": "80",
+      "shipped": "80",
+      "pending_shipping": "0"
+    },
+    {
+      "order": "450003",
+      "line": "10",
+      "requested": "50",
+      "picked": "50",
+      "received": "50",
+      "packed": "50",
+      "shipped": "50",
+      "pending_shipping": "0"
+    }
+  ],
+  "future_commands": [
+    {
+      "case": "Reintento",
+      "action": "Repetir confirmación con la misma clave",
+      "expected": "Devolver el resultado original, sin duplicar cantidad."
+    },
+    {
+      "case": "Exceso",
+      "action": "Confirmar 1 pieza adicional de ASG-001, que ya tiene sus 60 confirmadas",
+      "expected": "Rechazar por superar la cantidad planeada."
+    },
+    {
+      "case": "Doble carga",
+      "action": "Volver a cargar HU-DEMO-A",
+      "expected": "Rechazar porque ya fue embarcada."
+    },
+    {
+      "case": "Destino incorrecto",
+      "action": "Asignar HU-DEMO-A a PAR-A-2",
+      "expected": "Rechazar incompatibilidad entre DEST-A y DEST-B."
+    },
+    {
+      "case": "Packing excesivo",
+      "action": "Agregar 1 pieza a REC-001, ya totalmente empacada",
+      "expected": "Rechazar exceso; además la HU embarcada no admite edición."
+    },
+    {
+      "case": "Completar pendiente",
+      "action": "Ejecutar 40 piezas de ASG-002, Packing y VIA-B-001 mediante los futuros servicios",
+      "expected": "Pedido 450001 línea 10 termina con 100 embarcadas y cero pendientes."
+    }
+  ]
+}

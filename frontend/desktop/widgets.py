@@ -2,7 +2,7 @@
 from datetime import date
 from pathlib import Path
 import traceback
-from PySide6.QtCore import Qt,QObject,QRunnable,QThreadPool,Signal,QDate,QTimer
+from PySide6.QtCore import Qt,QObject,QRunnable,QThreadPool,Signal,QDate,QTimer,QPropertyAnimation,QEasingCurve
 from PySide6.QtGui import QColor,QFont
 from PySide6.QtWidgets import (
  QApplication,QMainWindow,QWidget,QFrame,QHBoxLayout,QVBoxLayout,QGridLayout,QLabel,
@@ -85,6 +85,130 @@ class DataTable(QTableWidget):
         idx=self.currentRow()
         return self.item(idx,0).data(Qt.ItemDataRole.UserRole) if idx>=0 and self.item(idx,0) else None
 
+class StageBar(QWidget):
+    """Single stage row: icon + label + animated progress bar + counter."""
+    def __init__(self,icon:str,label_text:str,color:str):
+        super().__init__()
+        self._color=color
+        layout=QHBoxLayout(self)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(10)
+
+        # Icon circle
+        self._icon_lbl=QLabel(icon)
+        self._icon_lbl.setObjectName("stageIcon")
+        self._icon_lbl.setFixedSize(32,32)
+        self._icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._icon_lbl.setStyleSheet(
+            f"background:{color}22;color:{color};border-radius:16px;"
+            "font-size:16px;font-weight:bold;"
+        )
+        layout.addWidget(self._icon_lbl)
+
+        # Stage name
+        name=QLabel(label_text)
+        name.setObjectName("stageLabel")
+        name.setFixedWidth(90)
+        layout.addWidget(name)
+
+        # Progress bar
+        self._bar=QProgressBar()
+        self._bar.setRange(0,1000)   # Use 1000 steps for smooth animation
+        self._bar.setValue(0)
+        self._bar.setFixedHeight(10)
+        self._bar.setTextVisible(False)
+        self._bar.setStyleSheet(
+            f"QProgressBar{{background:#EEF2F7;border:none;border-radius:5px;}}"
+            f"QProgressBar::chunk{{background:{color};border-radius:5px;}}"
+        )
+        layout.addWidget(self._bar,1)
+
+        # Counter text  e.g. "450 / 1 600"
+        self._counter=QLabel("—")
+        self._counter.setObjectName("stageCounter")
+        self._counter.setFixedWidth(130)
+        self._counter.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter)
+        layout.addWidget(self._counter)
+
+        # Percent label
+        self._pct=QLabel("0 %")
+        self._pct.setObjectName("stagePct")
+        self._pct.setFixedWidth(42)
+        self._pct.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter)
+        self._pct.setStyleSheet(f"color:{color};font-weight:bold;")
+        layout.addWidget(self._pct)
+
+        # Animation
+        self._anim=QPropertyAnimation(self._bar,b"value",self)
+        self._anim.setDuration(600)
+        self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+    def update_value(self,done:int,total:int):
+        pct=min(done,total)/total if total else 0.0
+        target=int(pct*1000)
+        self._anim.stop()
+        self._anim.setEndValue(target)
+        self._anim.start()
+        self._counter.setText(f"{done:,.0f} / {total:,.0f}")
+        self._pct.setText(f"{pct*100:.0f} %")
+        # Dim icon when nothing to do
+        opacity="FF" if total else "44"
+        self._icon_lbl.setStyleSheet(
+            f"background:{self._color}{opacity[:2]}22;color:{self._color};border-radius:16px;"
+            "font-size:16px;font-weight:bold;"
+        )
+
+
+class StageProgress(QFrame):
+    """Card showing the 5-stage warehouse flow with real progress from the snapshot."""
+    _STAGES=[
+        ("📦", "Pedido",   "#5B7FD4"),
+        ("🔍", "Picking",  "#D47F1E"),
+        ("📫", "Packing",  "#9B5BD4"),
+        ("🚚", "Staging",  "#1E9BAD"),
+        ("✅", "Embarque", "#27A06A"),
+    ]
+
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("card")
+        outer=QVBoxLayout(self)
+        outer.setContentsMargins(20,16,20,16)
+        outer.setSpacing(10)
+
+        header=QHBoxLayout()
+        title=QLabel("Avance del flujo")
+        title.setObjectName("section")
+        header.addWidget(title)
+        header.addStretch()
+        self._total_lbl=QLabel("")
+        self._total_lbl.setObjectName("eyebrow")
+        header.addWidget(self._total_lbl)
+        outer.addLayout(header)
+
+        self._bars:list[StageBar]=[]
+        for icon,name,color in self._STAGES:
+            bar=StageBar(icon,name,color)
+            outer.addWidget(bar)
+            self._bars.append(bar)
+
+    def update_totals(self,totals:dict):
+        total   =totals.get("cantidad",0)  or 0
+        planeado=totals.get("planeado",0)  or 0
+        recogido=totals.get("recogido",0)  or 0
+        empacado=totals.get("empacado",0)  or 0
+        embarcado=totals.get("embarcado",0) or 0
+
+        self._bars[0].update_value(total,    total)       # Pedido  — siempre 100 % si hay pedidos
+        self._bars[1].update_value(planeado, total)       # Picking planeado
+        self._bars[2].update_value(recogido, total)       # Picking confirmado
+        self._bars[3].update_value(empacado, total)       # Packing
+        self._bars[4].update_value(embarcado,total)       # Embarque
+
+        overall=int(embarcado/total*100) if total else 0
+        self._total_lbl.setText(f"COMPLETADO {overall} %" if total else "SIN PEDIDOS")
+
+
 class WindowSupport:
     def card(self):
         f=QFrame();f.setObjectName("card");v=QVBoxLayout(f);v.setContentsMargins(20,17,20,17);v.setSpacing(10);return f,v
@@ -127,9 +251,11 @@ class WindowSupport:
         return {key:w.value() if isinstance(w,QSpinBox) else w.text() for key,w in widgets.items()}
 
 
-    def command(self,action,**payload):
+    def command(self,action,on_success=None,**payload):
         def completed(result):
             self.toast.setText(result.get("message","Operación completada."))
+            if on_success:
+                on_success(result)
             self.refresh()
         self.run(lambda:self.api.command(action,**payload),completed)
 

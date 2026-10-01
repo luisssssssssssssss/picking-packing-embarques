@@ -36,4 +36,59 @@ QFrame#hero {background: #E1F3EE; border: 1px solid #B5DED2; border-radius: 12px
 QLabel#step {background: #E9EEF5; padding: 14px 10px; border-radius: 7px; font-weight: 600;}
 QLabel#route {background: #E1F3EE; padding: 16px; border-radius: 8px; font-size: 14px;}
 QDialog {background: #F5F8FB;}
+QLabel#stageLabel {font-size: 13px; font-weight: 600; color: #3A4F65;}
+QLabel#stageCounter {font-size: 12px; color: #7A8FA5;}
+QLabel#stagePct {font-size: 12px;}
+
+/* Estilos para el calendario emergente */
+QCalendarWidget QWidget {
+    alternate-background-color: #FAFCFF;
+}
+QCalendarWidget QToolButton {
+    color: #19334C;
+    font-size: 14px;
+    font-weight: 600;
+    icon-size: 20px;
+    background-color: transparent;
+    padding: 4px;
+}
+QCalendarWidget QToolButton:hover {
+    background-color: #EAF0F7;
+    border-radius: 4px;
+}
+QCalendarWidget QMenu {
+    width: 150px;
+    left: 20px;
+    color: white;
+    font-size: 14px;
+    background-color: #243B51;
+}
+QCalendarWidget QSpinBox {
+    width: 60px;
+    font-size: 14px;
+    color: #19334C;
+    background-color: transparent;
+    selection-background-color: #B4E4D9;
+}
+QCalendarWidget QSpinBox::up-button, QCalendarWidget QSpinBox::down-button {
+    subcontrol-origin: border;
+}
+QCalendarWidget QSpinBox::up-arrow, QCalendarWidget QSpinBox::down-arrow {
+    width: 10px;
+    height: 10px;
+}
+QCalendarWidget QWidget#qt_calendar_navigationbar {
+    background-color: white;
+    border-bottom: 1px solid #E1E7EF;
+}
+QCalendarWidget QAbstractItemView:enabled {
+    font-size: 13px;
+    color: #25354A;
+    background-color: white;
+    selection-background-color: #008B79;
+    selection-color: white;
+}
+QCalendarWidget QAbstractItemView:disabled {
+    color: #C0CDDB; /* Días no disponibles (fechas pasadas bloqueadas) */
+}
 """

@@ -53,6 +53,7 @@ class Window(WindowSupport,QMainWindow):
             f,c=self.card();c.addWidget(label(title,"cardLabel"));value=label("0","metric")
             c.addWidget(value);self.metrics[key]=value;row.addWidget(f)
         v.addLayout(row)
+        self.stage_progress=StageProgress();v.addWidget(self.stage_progress)
         v.addWidget(label("Así funciona","section"))
         flow=QHBoxLayout();self.steps=[]
         for text in ["1  Recibir pedido","2  Preparar productos","3  Cargar viaje","4  Cerrar embarque"]:
@@ -77,7 +78,12 @@ class Window(WindowSupport,QMainWindow):
         c.addWidget(label("La app reparte los pendientes entre días laborables. Puedes cambiar la sugerencia de 600 piezas.","muted"))
         row=QHBoxLayout();row.addWidget(label("Piezas por día"))
         self.capacity=QSpinBox();self.capacity.setRange(1,100000);self.capacity.setValue(600);row.addWidget(self.capacity)
-        row.addWidget(label("Empezar el"));self.start=QDateEdit(QDate.currentDate());self.start.setCalendarPopup(True);self.start.setDisplayFormat("dd/MM/yyyy");row.addWidget(self.start)
+        row.addWidget(label("Empezar el"))
+        self.start=QDateEdit(QDate.currentDate())
+        self.start.setCalendarPopup(True)
+        self.start.setDisplayFormat("dd/MM/yyyy")
+        self.start.setMinimumDate(QDate.currentDate())   # bloquea fechas pasadas
+        row.addWidget(self.start)
         row.addStretch();self.plan_button=button("Organizar pedidos pendientes",self.plan,True);row.addWidget(self.plan_button)
         c.addLayout(row);c.addWidget(label("Los días ya programados conservan su capacidad. Las cantidades que no caben continúan en el siguiente día disponible.","muted"));v.addWidget(f)
         self.calendar=DataTable([("fecha","Día de preparación"),("reservado","Piezas programadas"),("libre","Capacidad restante")]);v.addWidget(self.calendar,1)
@@ -125,6 +131,7 @@ class Window(WindowSupport,QMainWindow):
         self.state=state;total=state["totals"]
         values=dict(total,pendiente=total["cantidad"]-total["embarcado"])
         for key,w in self.metrics.items():w.setText(number(values[key]))
+        self.stage_progress.update_totals(total)
         self.overview.populate([dict(r,pendiente=r["cantidad"]-r["embarcado"]) for r in state["lines"]])
         tasks=[dict(r,por_recoger=r["cantidad"]-r["recogido"],por_empacar=r["recogido"]-r["empacado"]) for r in state["tasks"] if r["empacado"]<r["cantidad"]]
         self.worklist.populate(tasks)
@@ -182,21 +189,91 @@ class Window(WindowSupport,QMainWindow):
         actions={"new":self.new_order,"pick":self.pick,"pack":self.pack,"stage":self.stage,"trip":self.create_trip,"load":self.load,"close":self.close_trip}
         if self.next_kind in actions:actions[self.next_kind]()
 
+    def _confirm(self,icon:str,title:str,lines:list[str]):
+        """Show a non-blocking success dialog before the next refresh cycle."""
+        dialog=QDialog(self)
+        dialog.setWindowTitle("Operación completada")
+        dialog.setMinimumWidth(420)
+        layout=QVBoxLayout(dialog)
+        layout.setSpacing(14)
+        # Header row: big icon + title
+        header=QHBoxLayout()
+        icon_lbl=QLabel(icon)
+        icon_lbl.setStyleSheet("font-size:36px;")
+        icon_lbl.setFixedWidth(50)
+        icon_lbl.setAlignment(Qt.AlignmentFlag.AlignTop)
+        header.addWidget(icon_lbl)
+        title_lbl=QLabel(title)
+        title_lbl.setObjectName("section")
+        title_lbl.setWordWrap(True)
+        header.addWidget(title_lbl,1)
+        layout.addLayout(header)
+        # Detail lines
+        for line in lines:
+            lbl=QLabel(line)
+            lbl.setObjectName("muted")
+            lbl.setWordWrap(True)
+            layout.addWidget(lbl)
+        # Button
+        btn=QPushButton("Continuar")
+        btn.setObjectName("primary")
+        btn.setMinimumHeight(40)
+        btn.clicked.connect(dialog.accept)
+        layout.addWidget(btn)
+        dialog.exec()
+
     def pick(self):
         row=self.selected(self.worklist)
         if not row or row["por_recoger"]<=0:return
         data=self.form("Confirmar recogida",f"{row['descripcion']} → {row['destino']}\nEstante de surtido · {row['fecha']} (día simulado)\nLos códigos del producto y del estante están completos para esta prueba.",[("quantity","Piezas que recogiste",int(row["por_recoger"]))])
-        if data:self.command("pick",id=row["id"],location=row["ubicacion"],material=row["material"],**data)
+        if not data:return
+        snap=dict(row)   # capture before table refreshes
+        qty=data["quantity"]
+        remaining=int(snap["por_recoger"])-qty
+        def on_pick_done(_):
+            self._confirm(
+                "📦","Producto recogido",
+                [f"Producto: {snap['descripcion']}",
+                 f"Tienda: {snap['destino']}",
+                 f"Piezas recogidas: {number(qty)}",
+                 f"Pendientes en esta tarea: {number(max(0,remaining))}",
+                 f"Día simulado: {snap['fecha']}"],
+            )
+        self.command("pick",on_success=on_pick_done,id=row["id"],location=row["ubicacion"],material=row["material"],**data)
 
     def pack(self):
         row=self.selected(self.worklist)
         if not row or row["por_empacar"]<=0:return
         data=self.form("Confirmar empaque",f"{row['descripcion']} → {row['destino']}\nCrearemos una tarima identificada automáticamente.",[("quantity","Piezas que empacaste",int(row["por_empacar"]))])
-        if data:self.command("pack",id=row["id"],**data)
+        if not data:return
+        snap=dict(row)
+        qty=data["quantity"]
+        def on_pack_done(result):
+            # result contains 'message' with the HU code e.g. "Tarima DEMO-HU-XXXX creada con N piezas."
+            hu_msg=result.get("message","")
+            self._confirm(
+                "📫","Tarima creada",
+                [f"Producto: {snap['descripcion']}",
+                 f"Tienda: {snap['destino']}",
+                 f"Piezas empacadas: {number(qty)}",
+                 hu_msg],
+            )
+        self.command("pack",on_success=on_pack_done,id=row["id"],**data)
 
     def stage(self):
         row=self.selected(self.units)
-        if row and self.form("Confirmar traslado",f"{number(row['cantidad'])} piezas de {row['descripcion']}\nPara {row['destino']}\nConfirma que la tarima está en el área de salida.",[]) is not None:self.command("stage",id=row["id"])
+        if row and self.form("Confirmar traslado",f"{number(row['cantidad'])} piezas de {row['descripcion']}\nPara {row['destino']}\nConfirma que la tarima está en el área de salida.",[]) is not None:
+            snap=dict(row)
+            def on_stage_done(_):
+                self._confirm(
+                    "🚚","Tarima en área de salida",
+                    [f"Tarima: {snap['codigo']}",
+                     f"Producto: {snap['descripcion']}",
+                     f"Tienda: {snap['destino']}",
+                     f"Piezas: {number(snap['cantidad'])}",
+                     "Lista para asignarse al siguiente viaje."],
+                )
+            self.command("stage",on_success=on_stage_done,id=row["id"])
 
     def plan(self):
         self.command("plan",start_date=self.start.date().toString("yyyy-MM-dd"),capacity=self.capacity.value())
@@ -231,13 +308,35 @@ class Window(WindowSupport,QMainWindow):
         row=self.next_load
         if not row:return
         data=self.form("Confirmar carga",f"{row['descripcion']} · {number(row['cantidad'])} piezas\nPara {row['destino']} · entrega {row['parada']}\nTarima: {row['codigo']}\nConfirmación de prueba: el código ya está completo.",[])
-        if data is not None:self.command("load",id=row["id"],code=row["codigo"])
+        if data is None:return
+        snap=dict(row)
+        def on_load_done(_):
+            self._confirm(
+                "✅","Tarima cargada al tráiler",
+                [f"Tarima: {snap['codigo']}",
+                 f"Producto: {snap['descripcion']}",
+                 f"Parada {snap['parada']}: {snap['destino']}",
+                 f"Piezas: {number(snap['cantidad'])}"],
+            )
+        self.command("load",on_success=on_load_done,id=row["id"],code=row["codigo"])
 
     def close_trip(self):
         row=self.selected(self.shipments)
         if not row:return
         data=self.form("Cerrar embarque",f"{row['unidades']} tarimas · {row['cargadas']} cargadas\nViaje {row['viaje']}\nConfirmarás la salida del almacén.",[("seal","Sello del viaje","DEMO-SELLO-001")])
-        if data:self.command("close",id=row["id"],**data)
+        if not data:return
+        snap=dict(row)
+        seal=data.get("seal","")
+        def on_close_done(_):
+            self._confirm(
+                "🏁","Embarque cerrado",
+                [f"Viaje: {snap['viaje']}",
+                 f"Sello registrado: {seal}",
+                 f"Tarimas despachadas: {snap['unidades']}",
+                 "El manifiesto y la trazabilidad quedaron guardados.",
+                 "Puedes ver el resumen completo en 'Ver manifiesto'."],
+            )
+        self.command("close",on_success=on_close_done,id=row["id"],**data)
 
     def dialog_buttons(self,dialog,layout,title):
         controls=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
@@ -276,7 +375,10 @@ class Window(WindowSupport,QMainWindow):
         for r in products:product.addItem(r["nombre"],r["id"])
         for r in destinations:destination.addItem(r["nombre"],r["id"])
         qty=QSpinBox();qty.setRange(1,100000);qty.setValue(24);qty.setSuffix(" piezas")
-        due=QDateEdit(QDate.currentDate().addDays(1));due.setCalendarPopup(True);due.setDisplayFormat("dd/MM/yyyy")
+        due=QDateEdit(QDate.currentDate().addDays(1))
+        due.setCalendarPopup(True)
+        due.setDisplayFormat("dd/MM/yyyy")
+        due.setMinimumDate(QDate.currentDate())   # bloquea fechas pasadas
         for caption,widget in [("Producto",product),("Entregar en",destination),("Cantidad",qty),("Fecha solicitada",due)]:form.addRow(caption,widget)
         layout.addLayout(form);layout.addWidget(label("Generamos un CSV simulado y lo validamos antes de guardar el pedido. No necesitas escribir claves.","muted"))
         self.dialog_buttons(dialog,layout,"Crear pedido")
@@ -321,13 +423,36 @@ class Window(WindowSupport,QMainWindow):
         if row["estado"]!="CLOSED":
             QMessageBox.information(self,"Viaje en preparación","El resumen estará disponible cuando cierres el embarque.");return
         def show(result):
+            from datetime import datetime
             dialog=QDialog(self);dialog.setWindowTitle("Resumen del embarque");dialog.resize(860,560)
             layout=QVBoxLayout(dialog);layout.addWidget(label("Esto salió de tu almacén","section"))
             layout.addWidget(label(f"Viaje {row['viaje']} · Sello {result['seal']}","muted"))
             units=result["units"];total=sum(u["cantidad"] for u in units)
             layout.addWidget(label(f"{number(total)} piezas · {len(units)} tarimas","metric"))
             table=DataTable([("descripcion","Producto"),("destino","Tienda"),("parada","Entrega"),("cantidad","Piezas")])
-            table.populate(sorted(units,key=lambda u:u["parada"]));layout.addWidget(table)
+            sorted_units=sorted(units,key=lambda u:u["parada"]);table.populate(sorted_units);layout.addWidget(table)
             layout.addWidget(label("La salida está registrada. La entrega al cliente no se confirma desde esta demo.","muted"))
-            layout.addWidget(button("Cerrar",dialog.accept));dialog.exec()
+
+            def copy_to_clipboard():
+                sep="─"*46
+                lines=[
+                    f"EMBARQUE  {row['viaje']}",
+                    f"Sello:    {result['seal']}",
+                    f"Piezas:   {number(total)}   |   Tarimas: {len(units)}",
+                    sep,
+                ]
+                for u in sorted_units:
+                    lines.append(f"{u['parada']:>2}. {u['destino']:<22} {u['descripcion']:<20} {number(u['cantidad']):>8} pzas")
+                lines+=[sep,f"Generado: {datetime.now().strftime('%d/%m/%Y %H:%M')}"]
+                text="\n".join(lines)
+                QApplication.clipboard().setText(text)
+                self.toast.setText("✓ Resumen copiado al portapapeles · Ya puedes pegarlo en WhatsApp, correo o Excel.")
+
+            btn_row=QHBoxLayout()
+            btn_row.addWidget(button("Copiar resumen",copy_to_clipboard,True))
+            btn_row.addStretch()
+            btn_row.addWidget(button("Cerrar",dialog.accept))
+            layout.addLayout(btn_row)
+            dialog.exec()
         self.run(lambda:self.api.request("GET",f"/demo/shipments/{row['id']}/manifest"),show)
+

@@ -59,3 +59,7 @@ No hay nuevas migraciones SQL ni dependencias en esta actualización.
 El CSV ficticio pedidos_prueba.csv sirve para importar 48 Coca-Colas, 36 Sabritas y 24 Ruffles.
 Las fechas son fijas de prueba; volver a importar el mismo archivo no crea pedidos duplicados.
 Validación de publicación: 42 pruebas backend y 14 de interfaz aprobadas.
+
+## Próxima tarea acordada
+
+Seguir la [guía de mejoras de usabilidad](tareas/mejorar-usabilidad.md): cinco pasos, reparto de trabajo y criterios de prueba. Son ajustes de presentación; no nuevas funciones.

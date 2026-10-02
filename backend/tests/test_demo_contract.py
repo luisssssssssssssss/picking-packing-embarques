@@ -30,7 +30,7 @@ class CsvTests(unittest.TestCase):
 class ApiTests(unittest.TestCase):
     def test_no_anonymous_access_to_data_or_commands(self):
         client=TestClient(app)
-        for path in ("/demo/snapshot","/demo/sample","/demo/shipments/1/manifest"):
+        for path in ("/demo/operator","/demo/snapshot","/demo/sample","/demo/shipments/1/manifest"):
             self.assertEqual(client.get(path).status_code,401)
         self.assertEqual(client.post("/demo/commands/plan",json={"key":"00000000-0000-0000-0000-000000000001","payload":{}}).status_code,401)
     def test_authenticated_sample_and_health_without_database_mutation(self):

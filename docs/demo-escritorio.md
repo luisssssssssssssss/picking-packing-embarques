@@ -14,6 +14,10 @@ El lanzador crea una API FastAPI en una dirección 127.0.0.1 y puerto libre. Usa
 
 Si falla el inicio: ejecutar el diagnóstico de conexión y revisar .local/desktop-api.log. Nunca compartir backend/.env ni .local.
 
+## Nueva entrada: Mi tarea
+
+Desde el 1 de octubre, el lanzador abre [la vista del montacarguista](vista-montacarguista.md). Muestra una instrucción a la vez; el botón **Supervisor** abre las cinco secciones administrativas descritas abajo. No es todavía una separación de permisos por usuario.
+
 ## Lo que encontrarás preparado
 
 - Tres pedidos ficticios: 1,000, 350 y 250 piezas, para destinos A, B y C.

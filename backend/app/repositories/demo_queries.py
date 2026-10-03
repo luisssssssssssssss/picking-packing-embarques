@@ -24,12 +24,14 @@ OUTER APPLY (SELECT SUM(i.BaseQuantity) qty FROM operations.FulfillmentAllocatio
 OUTER APPLY (SELECT SUM(i.BaseQuantity) qty FROM operations.FulfillmentAllocation fa JOIN warehouse.PickingTaskLine tl ON tl.AllocationId=fa.Id JOIN warehouse.PickConfirmation pc ON pc.TaskLineId=tl.Id JOIN warehouse.PackingReceipt pr ON pr.PickConfirmationId=pc.Id JOIN warehouse.HandlingUnitItem i ON i.ReceiptId=pr.Id JOIN warehouse.HandlingUnit hu ON hu.Id=i.HandlingUnitId AND hu.Status='SHIPPED' WHERE fa.OrderLineId=l.Id) sh
 """
 TASK_SQL = """
-SELECT tl.Id AS id,tl.TaskId,tl.AllocationId,tl.PlannedBaseQuantity AS cantidad,
+SELECT au.DisplayName AS responsable,tl.Id AS id,tl.TaskId,tl.AllocationId,l.Id AS line_id,tl.PlannedBaseQuantity AS cantidad,
  so.ExternalOrderNumber AS pedido,r.MaterialCodeSnapshot AS material,m.Description AS descripcion,
- ds.Name AS destino,loc.Code AS ubicacion,tl.Status AS estado,
+ ds.Name AS destino,loc.Code AS ubicacion,loc.Name AS ubicacion_nombre,w.Name AS almacen,tl.Status AS estado,
  cb.Id AS booking_id,cd.WorkDate AS fecha,cb.PoolId,
  COALESCE(p.qty,0) AS recogido,COALESCE(k.qty,0) AS empacado
 FROM warehouse.PickingTaskLine tl
+JOIN warehouse.PickingTask pt ON pt.Id=tl.TaskId
+LEFT JOIN security.AppUser au ON au.Id=pt.AssignedUserId
 JOIN operations.FulfillmentAllocation fa ON fa.Id=tl.AllocationId
 JOIN operations.OrderLine l ON l.Id=fa.OrderLineId
 JOIN operations.SalesOrder so ON so.Id=l.OrderId
@@ -38,6 +40,7 @@ JOIN operations.OrderLineRevision r ON r.Id=fa.OrderLineRevisionId
 JOIN catalog.Material m ON m.Id=r.MaterialId
 JOIN catalog.DeliverySite ds ON ds.Id=r.DeliverySiteId
 JOIN catalog.Location loc ON loc.Id=tl.SourceLocationId
+JOIN catalog.Warehouse w ON w.Id=loc.WarehouseId
 JOIN planning.CapacityBooking cb ON cb.AllocationId=fa.Id
 JOIN planning.CapacityDay cd ON cd.Id=cb.CapacityDayId
 OUTER APPLY (SELECT SUM(BaseQuantity) qty FROM warehouse.PickConfirmation WHERE TaskLineId=tl.Id) p
@@ -45,11 +48,14 @@ OUTER APPLY (SELECT SUM(i.BaseQuantity) qty FROM warehouse.PickConfirmation pc J
 """
 HU_SQL = """
 SELECT hu.Id AS id,hu.Code AS codigo,hu.Status AS estado,ds.Name AS destino,
- hu.DeliverySiteId,MIN(fa.Id) AS AllocationId,
+ hu.DeliverySiteId,MIN(fa.Id) AS AllocationId,MIN(r.OrderLineId) AS line_id,
+ w.Name AS almacen,loc.Name AS ubicacion_nombre,loc.Code AS ubicacion,
  MIN(so.ExternalOrderNumber) AS pedido,MIN(r.MaterialCodeSnapshot) AS material,MIN(m.Description) AS descripcion,
  SUM(i.BaseQuantity) AS cantidad,
  su.Id AS shipment_unit_id,su.ShipmentId AS shipment_id,ts.SequenceNumber AS parada
 FROM warehouse.HandlingUnit hu
+JOIN catalog.Warehouse w ON w.Id=hu.WarehouseId
+LEFT JOIN catalog.Location loc ON loc.Id=hu.CurrentLocationId
 JOIN catalog.DeliverySite ds ON ds.Id=hu.DeliverySiteId
 JOIN warehouse.HandlingUnitItem i ON i.HandlingUnitId=hu.Id
 JOIN warehouse.PackingReceipt pr ON pr.Id=i.ReceiptId
@@ -62,7 +68,7 @@ JOIN operations.SalesOrder so ON so.Id=r.OrderId
 JOIN integration.SourceSystem src ON src.Id=so.SourceSystemId AND src.Code='DEMO_DESKTOP'
 LEFT JOIN shipping.ShipmentUnit su ON su.HandlingUnitId=hu.Id AND su.ReleasedAtUtc IS NULL
 LEFT JOIN planning.TripStop ts ON ts.Id=su.StopId
-GROUP BY hu.Id,hu.Code,hu.Status,ds.Name,hu.DeliverySiteId,su.Id,su.ShipmentId,ts.SequenceNumber
+GROUP BY hu.Id,hu.Code,hu.Status,ds.Name,hu.DeliverySiteId,su.Id,su.ShipmentId,ts.SequenceNumber,w.Name,loc.Name,loc.Code
 """
 
 def snapshot():
@@ -77,10 +83,13 @@ FROM planning.CapacityDay cd JOIN planning.CapacityPool p ON p.Id=cd.PoolId AND 
 LEFT JOIN planning.CapacityBooking cb ON cb.CapacityDayId=cd.Id AND cb.Status IN ('COMMITTED','COMPLETED')
 GROUP BY cd.Id,cd.WorkDate,cd.BaseCapacity,cd.ExtraCapacity,cd.UnavailableCapacity ORDER BY cd.WorkDate""")
         shipments=db.rows("""
-SELECT s.Id AS id,t.Code AS viaje,s.Status AS estado,s.SealNumber AS sello,s.OpenedAtUtc AS apertura,
+SELECT s.Id AS id,t.Code AS viaje,s.Status AS estado,s.SealNumber AS sello,s.OpenedAtUtc AS apertura,tr.Code AS trailer,loc.Name AS anden,
  (SELECT COUNT(*) FROM shipping.ShipmentUnit WHERE ShipmentId=s.Id) AS unidades,
  (SELECT COUNT(*) FROM shipping.ShipmentUnit WHERE ShipmentId=s.Id AND Status IN ('LOADED','DISPATCHED')) AS cargadas
-FROM shipping.Shipment s JOIN planning.Trip t ON t.Id=s.TripId WHERE t.Code LIKE 'DEMO-VIA-%' ORDER BY s.Id DESC""")
+FROM shipping.Shipment s JOIN planning.Trip t ON t.Id=s.TripId
+JOIN planning.Trailer tr ON tr.Id=s.TrailerId
+LEFT JOIN catalog.Location loc ON loc.Id=s.DockLocationId
+WHERE t.Code LIKE 'DEMO-VIA-%' ORDER BY s.Id DESC""")
         stops=db.rows("""
 SELECT s.Id AS shipment_id,st.SequenceNumber AS secuencia,ds.Name AS destino,dr.RoadDistanceKm AS km,st.Instructions AS instructions
 FROM shipping.Shipment s JOIN planning.Trip t ON t.Id=s.TripId AND t.Code LIKE 'DEMO-VIA-%'
@@ -107,10 +116,22 @@ JOIN integration.SourceSystem src ON src.Id=f.SourceSystemId AND src.Code='DEMO_
 SELECT TOP(50) e.RunId AS importacion,e.Message AS mensaje FROM integration.ImportError e
 JOIN integration.ImportRun r ON r.Id=e.RunId JOIN integration.ImportedFile f ON f.Id=r.FileId
 JOIN integration.SourceSystem src ON src.Id=f.SourceSystemId AND src.Code='DEMO_DESKTOP' ORDER BY e.Id DESC""")
-        audit=db.rows("SELECT TOP(80) ActionCode AS accion,EntityKey AS referencia,AfterJson AS detalle,OccurredAtUtc AS fecha FROM audit.AuditEvent WHERE EntityType='DESKTOP_DEMO' ORDER BY Id DESC")
+        audit=db.rows("SELECT TOP(80) e.ActionCode AS accion,e.EntityKey AS referencia,e.AfterJson AS detalle,e.OccurredAtUtc AS fecha,u.DisplayName AS responsable FROM audit.AuditEvent e LEFT JOIN security.AppUser u ON u.Id=e.ActorUserId WHERE e.EntityType='DESKTOP_DEMO' ORDER BY e.Id DESC")
+        operational_audit=db.rows("""SELECT TOP(8) e.ActionCode AS accion,e.AfterJson AS detalle,
+e.OccurredAtUtc AS fecha,u.DisplayName AS responsable
+FROM audit.AuditEvent e LEFT JOIN security.AppUser u ON u.Id=e.ActorUserId
+WHERE e.EntityType='DESKTOP_DEMO' AND e.ActionCode IN ('PICK','PACK','STAGE','LOAD','CLOSE','INCIDENT')
+ORDER BY e.Id DESC""")
         incidents=db.rows("""
 SELECT TOP(40) i.Id AS id,i.Description AS descripcion,i.Status AS estado,i.CreatedAtUtc AS fecha
 FROM quality.Incident i JOIN quality.IncidentType t ON t.Id=i.TypeId AND t.Code='DEMO-INC' ORDER BY i.Id DESC""")
-        return dict(products=products,destinations=sites,lines=lines,tasks=tasks,units=units,days=days,shipments=shipments,stops=stops,
-                    imports=imports,errors=errors,audit=audit,incidents=incidents,
+        locations=db.rows("""SELECT loc.LocationType AS kind,loc.Name AS nombre,loc.Code AS codigo,w.Name AS almacen
+FROM catalog.Location loc JOIN catalog.Warehouse w ON w.Id=loc.WarehouseId
+WHERE w.Code='DEMO-ALM' AND loc.Code IN ('DEMO-PACK','DEMO-STG','DEMO-DOCK') AND loc.IsActive=1""")
+        state = dict(locations=locations,products=products,destinations=sites,lines=lines,tasks=tasks,units=units,days=days,shipments=shipments,stops=stops,
+                    imports=imports,errors=errors,audit=audit,operational_audit=operational_audit,incidents=incidents,
                     totals={key:sum(row[key] for row in lines) for key in ("cantidad","planeado","recogido","empacado","embarcado")})
+
+        from backend.app.services.demo_supervisor import supervisor_view
+        state["supervisor"]=supervisor_view(state)
+        return state

@@ -5,6 +5,7 @@ from frontend.desktop.widgets import *
 
 
 class Window(WindowSupport,QMainWindow):
+    operator_requested=Signal()
     def __init__(self,api=None):
         super().__init__()
         self.api=api or Api();self.state={};self.jobs=set();self.pool=QThreadPool(self)
@@ -16,7 +17,7 @@ class Window(WindowSupport,QMainWindow):
         sl=QVBoxLayout(side);sl.setContentsMargins(18,30,18,24)
         sl.addWidget(label("MI ALMACÉN","brand"));sl.addWidget(label("SURTIR. EMPACAR. ENTREGAR.","brandSub"));sl.addSpacing(30)
         self.nav=QListWidget();self.nav.setObjectName("nav")
-        self.nav.addItems(["Inicio","Pedidos","Preparar productos","Viajes","Destinos"])
+        self.nav.addItems(["Hoy","Pedidos","Preparar productos","Viajes","Destinos"])
         sl.addWidget(self.nav,1)
         sl.addWidget(button("Ver historial",self.history))
         sl.addWidget(label("DEMO DE TIENDAS\n\nProductos conocidos.\nDatos ficticios.\nMovimientos guardados.","navFooter"))
@@ -32,7 +33,24 @@ class Window(WindowSupport,QMainWindow):
         self.toast=label("Conectando con tu almacén…","toast");wl.addWidget(self.toast)
         self.build_home();self.build_orders();self.build_work();self.build_trips();self.build_destinations()
         self.nav.currentRowChanged.connect(self.navigate);self.nav.setCurrentRow(0)
+        self.monitor=QTimer(self);self.monitor.setInterval(10000)
+        self.monitor.timeout.connect(self.poll_supervisor);self.monitor.start()
         QTimer.singleShot(0,self.refresh)
+
+    def poll_supervisor(self):
+        # Read only, without locking the UI or opening repeated failure dialogs.
+        if not self.isVisible() or self.jobs or QApplication.activeModalWidget():
+            return
+        job=Job(self.api.snapshot);self.jobs.add(job)
+        def finished(value,error=False):
+            self.jobs.discard(job)
+            if error:
+                self.supervisor.freshness.setText("SIN ACTUALIZAR · Últimos datos conservados. Revisa la conexión.")
+                return
+            self.render(value)
+        job.signals.done.connect(lambda value:finished(value))
+        job.signals.error.connect(lambda value:finished(value,True))
+        self.pool.start(job)
 
     def page(self):
         body=QWidget();body.setObjectName("pageBody");v=QVBoxLayout(body);v.setContentsMargins(0,4,0,0);v.setSpacing(14)
@@ -40,33 +58,13 @@ class Window(WindowSupport,QMainWindow):
         return v
 
     def build_home(self):
+        from frontend.desktop.supervisor_panel import SupervisorPanel
         v=self.page()
-        hero,c=self.card();hero.setObjectName("hero")
-        c.addWidget(label("SIGUIENTE PASO","eyebrow"))
-        self.next_heading=label("Vamos a surtir una tienda","title");c.addWidget(self.next_heading)
-        self.next_description=label("La app preparará los datos por ti.","subtitle");c.addWidget(self.next_description)
-        row=QHBoxLayout();self.next_button=button("Comenzar",self.next_action,True)
-        self.next_button.setMinimumHeight(48);row.addWidget(self.next_button)
-        row.addWidget(button("Crear otro pedido",self.new_order));row.addStretch();c.addLayout(row);v.addWidget(hero)
-        row=QHBoxLayout();self.metrics={}
-        for key,title in [("cantidad","Piezas pedidas"),("pendiente","Por embarcar"),("embarcado","Ya embarcadas")]:
-            f,c=self.card();c.addWidget(label(title,"cardLabel"));value=label("0","metric")
-            c.addWidget(value);self.metrics[key]=value;row.addWidget(f)
-        v.addLayout(row)
-        self.stage_progress=StageProgress();v.addWidget(self.stage_progress)
-        v.addWidget(label("Así funciona","section"))
-        flow=QHBoxLayout();self.steps=[]
-        for text in ["1  Recibir pedido","2  Preparar productos","3  Cargar viaje","4  Cerrar embarque"]:
-            chip=label(text,"step");self.steps.append(chip);flow.addWidget(chip)
-        v.addLayout(flow)
-        v.addWidget(label("Productos de nuestra tienda de ejemplo","section"))
-        products=QHBoxLayout()
-        for title,detail,color,letter in [("Coca-Cola","Botella de 600 ml","#B82936","BEBIDA"),("Sabritas","Original · bolsa de 45 g","#AE7400","BOTANA"),("Ruffles","Queso · bolsa de 50 g","#3153A0","BOTANA")]:
-            f,c=self.card();tag=label(letter,"eyebrow");tag.setStyleSheet("color:"+color)
-            c.addWidget(tag);c.addWidget(label(title,"section"));c.addWidget(label(detail,"muted"));products.addWidget(f)
-        v.addLayout(products)
-        v.addWidget(label("Contamos piezas: 1 botella o 1 bolsa = 1 pieza. En esta demo se supone que hay existencias suficientes; todavía no se descuenta inventario físico.","muted"))
-        v.addStretch()
+        self.supervisor=SupervisorPanel(self);v.addWidget(self.supervisor);v.addStretch()
+        # Retain the existing suggested-action calculation for administrative actions.
+        self.metrics={}
+        self.next_heading=label("");self.next_description=label("")
+        self.next_button=button("",self.next_action)
 
     def build_orders(self):
         v=self.page();row=QHBoxLayout()
@@ -123,12 +121,13 @@ class Window(WindowSupport,QMainWindow):
         v.addWidget(label("Los 3 destinos iniciales y sus distancias son ficticios. Cambiarlos afecta propuestas futuras; los viajes creados conservan su orden y distancia registrados. No se calculan carreteras, tráfico ni kilómetros entre tiendas.","muted"));v.addStretch()
 
     def navigate(self,index):
-        titles=["Todo listo para continuar","¿Qué vamos a surtir?","Prepara un producto a la vez","Cada tienda, en su orden","¿Dónde vas a entregar?"]
-        subtitles=["La app te indica la siguiente acción y prepara sus datos.","Elige productos y tiendas. Nosotros generamos el CSV de prueba.","Recoge, empaca y deja listo para cargar.","Revisa la propuesta antes de crear el viaje.","Solo necesitas el nombre del destino y sus kilómetros."]
+        titles=["Tu almacén, de un vistazo","¿Qué vamos a surtir?","Prepara un producto a la vez","Cada tienda, en su orden","¿Dónde vas a entregar?"]
+        subtitles=["Supervisión · trabajo programado, pendientes y confirmaciones","Elige productos y tiendas. Nosotros generamos el CSV de prueba.","Recoge, empaca y deja listo para cargar.","Revisa la propuesta antes de crear el viaje.","Solo necesitas el nombre del destino y sus kilómetros."]
         self.pages.setCurrentIndex(index);self.title.setText(titles[index]);self.subtitle.setText(subtitles[index])
 
     def render(self,state):
         self.state=state;total=state["totals"]
+        self.supervisor.render(state.get("supervisor"))
         values=dict(total,pendiente=total["cantidad"]-total["embarcado"])
         for key,w in self.metrics.items():w.setText(number(values[key]))
         self.stage_progress.update_totals(total)

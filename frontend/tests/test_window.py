@@ -30,7 +30,7 @@ class DesktopTests(unittest.TestCase):
             if self.window.state and not self.window.jobs:return
         self.fail("Desktop task timed out")
     def test_navigation_and_pending_action(self):
-        self.assertEqual(self.window.metrics["cantidad"].text(),"100")
+        self.assertEqual(self.window.nav.item(0).text(),"Hoy")
         self.assertEqual(self.window.nav.count(),5)
         for index in range(5):
             self.window.nav.setCurrentRow(index)

@@ -9,6 +9,10 @@ La interfaz Python fue solicitada el 29 de septiembre de 2026. La aplicación m�
 - **[Script SQL completo](database/distribucion/crear_base_desarrollo.sql)** para SSMS.
 - **[Primera tarea: agregar productos](docs/tareas/agregar-productos.md)** con pruebas y entrega.
 
+## Vista del montacarguista
+
+La app abre **Mi tarea**, con una sola instrucción y confirmación por paso. **Supervisor** abre las pantallas administrativas. Consulta [uso y límites](docs/vista-montacarguista.md).
+
 ## Estado
 
 - Repositorio Git y remoto de GitHub configurados.
@@ -118,3 +122,7 @@ El paquete 0.2 se comprobó en una base temporal: creación de 68 tablas, repeti
 ## Ejecución de escritorio
 
 Doble clic en [Iniciar Demo.cmd](Iniciar%20Demo.cmd). El acceso usa Python; el ejecutable generado fue bloqueado por la política de aplicaciones de Windows. No se incluyeron credenciales en el binario. Consulta [alcance y pruebas](docs/demo-escritorio.md). El repositorio incluye el código y los scripts; cada equipo instala sus dependencias y conserva su configuración local.
+
+## Vista del supervisor
+
+Abrir **Iniciar Supervisor.cmd** para consultar el trabajo de hoy, atrasos y últimas confirmaciones. [Uso, límites y explicación de las tablas](docs/vista-supervisor.md).

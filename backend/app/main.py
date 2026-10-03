@@ -55,6 +55,12 @@ def health():
 def get_snapshot():
     return snapshot()
 
+@app.get("/demo/operator",dependencies=[Depends(authorize)])
+def get_operator(preferred_allocation: int | None = None):
+    from backend.app.services.demo_operator import operator_view
+    return operator_view(snapshot(),preferred_allocation)
+
+
 @app.get("/demo/sample",dependencies=[Depends(authorize)])
 def sample():
     path=Path(os.environ.get("PPE_PROJECT_ROOT",str(Path(__file__).resolve().parents[2])))/"samples"/"csv"/"demo_escritorio.csv"

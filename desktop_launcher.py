@@ -28,7 +28,7 @@ def main():
         return
     from PySide6.QtWidgets import QApplication,QMessageBox
     from PySide6.QtCore import QTimer
-    from frontend.desktop.window import Window
+    from frontend.desktop.operator_window import OperatorWindow
     import httpx
     application=QApplication(sys.argv)
     application.setStyle("Fusion")
@@ -66,17 +66,27 @@ def main():
     if not ready:
         QMessageBox.critical(None,"No se pudo iniciar","Revisa que SQL Server esté encendido y backend/.env sea correcto. Diagnóstico: .local/desktop-api.log")
         stop();return
-    window=Window();window.show()
+    window=OperatorWindow();window.show()
+    if "--supervisor" in sys.argv:
+        def open_supervisor():
+            if window.jobs or not window.state:
+                QTimer.singleShot(200,open_supervisor)
+                return
+            window.open_admin()
+        QTimer.singleShot(200,open_supervisor)
     if "--capture" in sys.argv:
         attempts=[0]
         def capture():
             attempts[0]+=1
-            if window.state and not window.jobs:
+            if window.state and not window.jobs and ("--supervisor" not in sys.argv or (window.admin and window.admin.state and not window.admin.jobs)):
                 folder=root/"docs"/"pruebas"/"capturas";folder.mkdir(exist_ok=True)
-                window.grab().save(str(folder/"demo-escritorio.png"))
-                for index in range(1,window.pages.count()):
-                    window.nav.setCurrentRow(index);application.processEvents()
-                    window.grab().save(str(folder/f"demo-pagina-{index}.png"))
+                if "--supervisor" in sys.argv:
+                    window.admin.grab().save(str(folder/"demo-supervisor.png"))
+                    application.quit()
+                    return
+                window.grab().save(str(folder/"demo-operador.png"))
+                window.resize(390,780);application.processEvents()
+                window.grab().save(str(folder/"demo-operador-compacto.png"))
                 application.quit()
             elif attempts[0]<100:QTimer.singleShot(200,capture)
             else:application.quit()

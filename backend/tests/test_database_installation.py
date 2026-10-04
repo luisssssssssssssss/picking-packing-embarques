@@ -139,7 +139,8 @@ class SqlIntegrityTests(unittest.TestCase):
         probe = "platform.__InstallationRollbackProbe"
         self.assertIsNone(self.cursor.execute("SELECT OBJECT_ID(?)", probe).fetchone()[0])
         sql = f"CREATE TABLE {probe} (Id int); THROW 51000, 'Test rollback', 1;"
-        migration = Migration("005", sql, hashlib.sha256(sql.encode()).digest())
+        next_version = f"{int(load_migrations()[-1].version)+1:03}"
+        migration = Migration(next_version, sql, hashlib.sha256(sql.encode()).digest())
         with self.assertRaises(pyodbc.Error):
             try:
                 apply_migrations(self.connection, load_migrations()+[migration])
@@ -148,7 +149,7 @@ class SqlIntegrityTests(unittest.TestCase):
                 raise
         self.assertIsNone(self.cursor.execute("SELECT OBJECT_ID(?)", probe).fetchone()[0])
         self.assertEqual(self.cursor.execute(
-            "SELECT COUNT(*) FROM platform.SchemaMigration WHERE Version='005'").fetchone()[0], 0)
+            "SELECT COUNT(*) FROM platform.SchemaMigration WHERE Version=?", next_version).fetchone()[0], 0)
 
 
 if __name__ == "__main__":

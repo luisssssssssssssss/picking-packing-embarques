@@ -1,0 +1,7 @@
+ID|QuienPidio|Producto|CantidadSolicitada|UnidadMedida|Destino|Almacen|FechaRequeridaEntrega|NumeroPedido|LineaPedido|CodigoCliente|CodigoDestino|CodigoMaterial
+PED-001|La Ralde|Coca-Cola 600 ml|48|PZA|La Ralde|Almacén cuarto de Víctor|2026-10-04|DEMO-PRESENTACION-20261004-01|1|DEMO-CLI-RALDE|DEMO-DEST-RALDE|DEMO-MAT-01
+PED-002|Oxxo|Ruffles Queso 50 g|36|PZA|Oxxo|Almacén cuarto de Víctor|2026-10-04|DEMO-PRESENTACION-20261004-02|1|DEMO-CLI-OXXO|DEMO-DEST-OXXO|DEMO-MAT-03
+PED-003|Salma|Doritos Nacho 58 g|60|PZA|Salma|Almacén cuarto de Huicho|2026-10-04|DEMO-PRESENTACION-20261004-03|1|DEMO-CLI-SALMA|DEMO-DEST-SALMA|DEMO-MAT-04
+PED-004|La Ralde|Agua Ciel 1 L|24|PZA|La Ralde|Almacén cuarto de Huicho|2026-10-04|DEMO-PRESENTACION-20261004-04|1|DEMO-CLI-RALDE|DEMO-DEST-RALDE|DEMO-MAT-05
+PED-005|Oxxo|Pepsi 600 ml|48|PZA|Oxxo|Almacén cuarto de Veloco|2026-10-04|DEMO-PRESENTACION-20261004-05|1|DEMO-CLI-OXXO|DEMO-DEST-OXXO|DEMO-MAT-07
+PED-006|Salma|Cheetos Torciditos 52 g|24|PZA|Salma|Almacén cuarto de Veloco|2026-10-04|DEMO-PRESENTACION-20261004-06|1|DEMO-CLI-SALMA|DEMO-DEST-SALMA|DEMO-MAT-08

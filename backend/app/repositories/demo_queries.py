@@ -5,7 +5,7 @@ from backend.app.services.demo_catalog import destinations
 from backend.app.services.demo_seed import SOURCE
 
 LINE_SQL = """
-SELECT l.Id AS id, so.ExternalOrderNumber AS pedido, l.ExternalLineKey AS linea,
+SELECT l.Id AS id, so.ExternalOrderNumber AS pedido, COALESCE(so.DisplayOrderId,so.ExternalOrderNumber) AS id_pedido, l.ExternalLineKey AS linea,
  r.Id AS revision_id,r.MaterialId,r.DeliverySiteId,r.RequestedDate AS fecha,
  r.RequiredBaseQuantity AS cantidad,r.MaterialCodeSnapshot AS material,
  m.Description AS descripcion,c.Name AS cliente,ds.Name AS destino,
@@ -25,7 +25,7 @@ OUTER APPLY (SELECT SUM(i.BaseQuantity) qty FROM operations.FulfillmentAllocatio
 """
 TASK_SQL = """
 SELECT au.DisplayName AS responsable,tl.Id AS id,tl.TaskId,tl.AllocationId,l.Id AS line_id,tl.PlannedBaseQuantity AS cantidad,
- so.ExternalOrderNumber AS pedido,r.MaterialCodeSnapshot AS material,m.Description AS descripcion,
+ so.ExternalOrderNumber AS pedido, COALESCE(so.DisplayOrderId,so.ExternalOrderNumber) AS id_pedido,r.MaterialCodeSnapshot AS material,m.Description AS descripcion,
  ds.Name AS destino,loc.Code AS ubicacion,loc.Name AS ubicacion_nombre,w.Id AS WarehouseId,w.Name AS almacen,tl.Status AS estado,
  cb.Id AS booking_id,cd.WorkDate AS fecha,cb.PoolId,
  COALESCE(p.qty,0) AS recogido,COALESCE(k.qty,0) AS empacado
@@ -50,7 +50,7 @@ HU_SQL = """
 SELECT hu.CreatedAtUtc AS fecha_empaque,hu.Id AS id,hu.Code AS codigo,hu.Status AS estado,ds.Name AS destino,
  hu.DeliverySiteId,MIN(fa.Id) AS AllocationId,MIN(r.OrderLineId) AS line_id,
  w.Id AS WarehouseId,w.Name AS almacen,loc.Name AS ubicacion_nombre,loc.Code AS ubicacion,
- MIN(so.ExternalOrderNumber) AS pedido,MIN(r.MaterialCodeSnapshot) AS material,MIN(m.Description) AS descripcion,
+ MIN(so.ExternalOrderNumber) AS pedido,MIN(COALESCE(so.DisplayOrderId,so.ExternalOrderNumber)) AS id_pedido,MIN(r.MaterialCodeSnapshot) AS material,MIN(m.Description) AS descripcion,
  SUM(i.BaseQuantity) AS cantidad,
  su.Id AS shipment_unit_id,su.ShipmentId AS shipment_id,ts.SequenceNumber AS parada
 FROM warehouse.HandlingUnit hu
@@ -91,6 +91,8 @@ FROM shipping.Shipment s JOIN planning.Trip t ON t.Id=s.TripId
 JOIN planning.Trailer tr ON tr.Id=s.TrailerId
 LEFT JOIN catalog.Location loc ON loc.Id=s.DockLocationId
 WHERE t.Code LIKE 'DEMO-VIA-%' ORDER BY s.Id DESC""")
+        for shipment in shipments:
+            shipment["id_pedido"]=", ".join(sorted({u["id_pedido"] for u in units if u["shipment_id"]==shipment["id"]}))
         stops=db.rows("""
 SELECT s.Id AS shipment_id,st.SequenceNumber AS secuencia,ds.Name AS destino,dr.RoadDistanceKm AS km,st.Instructions AS instructions
 FROM shipping.Shipment s JOIN planning.Trip t ON t.Id=s.TripId AND t.Code LIKE 'DEMO-VIA-%'
@@ -108,7 +110,7 @@ LEFT JOIN planning.DistanceReference dr ON dr.Id=st.DistanceFromPreviousId ORDER
                 stop.update(km=info["km"],destino=info["destination"],km_basis="warehouse")
         products=db.rows("SELECT Id AS id,Code AS codigo,Description AS nombre FROM catalog.Material WHERE Code LIKE 'DEMO-%' AND IsActive=1 ORDER BY Code")
         sites=destinations(db)
-        sites_by_warehouse={str(w["Id"]):destinations(db,w["Id"]) for w in db.rows("SELECT Id FROM catalog.Warehouse WHERE Code IN ('DEMO-ALM','DEMO-HUICHO')")}
+        sites_by_warehouse={str(w["Id"]):destinations(db,w["Id"]) for w in db.rows("SELECT Id FROM catalog.Warehouse WHERE Code IN ('DEMO-ALM','DEMO-HUICHO','DEMO-VELOCO')")}
         imports=db.rows("""
 SELECT TOP(20) r.Id AS id,f.OriginalFileName AS archivo,r.Status AS estado,r.CreatedAtUtc AS fecha,
  (SELECT COUNT(*) FROM integration.ImportError e WHERE e.RunId=r.Id) AS errores
@@ -129,7 +131,7 @@ SELECT TOP(40) i.Id AS id,i.Description AS descripcion,i.Status AS estado,i.Crea
 FROM quality.Incident i JOIN quality.IncidentType t ON t.Id=i.TypeId AND t.Code='DEMO-INC' ORDER BY i.Id DESC""")
         locations=db.rows("""SELECT loc.LocationType AS kind,loc.Name AS nombre,loc.Code AS codigo,w.Id AS WarehouseId,w.Name AS almacen
 FROM catalog.Location loc JOIN catalog.Warehouse w ON w.Id=loc.WarehouseId
-WHERE w.Code IN ('DEMO-ALM','DEMO-HUICHO') AND loc.LocationType IN ('PACKING','STAGING','DOCK') AND loc.IsActive=1""")
+WHERE w.Code IN ('DEMO-ALM','DEMO-HUICHO','DEMO-VELOCO') AND loc.LocationType IN ('PACKING','STAGING','DOCK') AND loc.IsActive=1""")
         state = dict(destinations_by_warehouse=sites_by_warehouse,locations=locations,products=products,destinations=sites,lines=lines,tasks=tasks,units=units,days=days,shipments=shipments,stops=stops,
                     imports=imports,errors=errors,audit=audit,operational_audit=operational_audit,incidents=incidents,
                     totals={key:sum(row[key] for row in lines) for key in ("cantidad","planeado","recogido","empacado","embarcado")})

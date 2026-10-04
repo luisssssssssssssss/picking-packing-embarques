@@ -16,7 +16,7 @@ def literal(text: str) -> str:
 def build_sql(database: str = "PickingPackingEmbarques_Dev") -> str:
     name = quote_database(database)
     migrations = load_migrations()
-    history_checks = ["IF (SELECT COUNT(*) FROM platform.SchemaMigration) <> 4 THROW 51000, 'Version distinta; use las migraciones del repositorio.', 1;"]
+    history_checks = [f"IF (SELECT COUNT(*) FROM platform.SchemaMigration) <> {len(migrations)} THROW 51000, 'Version distinta; use las migraciones del repositorio.', 1;"]
     for m in migrations:
         history_checks.append(f"IF NOT EXISTS (SELECT 1 FROM platform.SchemaMigration WHERE Version='{m.version}' AND ApplicationCode='{APP_CODE}' AND ScriptChecksum=0x{m.checksum.hex()}) THROW 51000, 'Historial diferente; no se modifico la base.', 1;")
     body = f"""

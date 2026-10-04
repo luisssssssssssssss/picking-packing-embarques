@@ -46,6 +46,7 @@ class DemoJourneyTests(unittest.TestCase):
         self.assertTrue(command("import",content=sample,filename="same.csv")["duplicate"])
         command("plan",start_date="2026-10-05",capacity=600)
         s=snapshot()
+        self.assertTrue(all(r["id_pedido"]==r["pedido"] for r in s["lines"]))
         self.assertEqual([int(d["reservado"]) for d in s["days"]],[600,600,400])
         self.assertEqual(len(s["tasks"]),5)
         command("plan",start_date="2026-10-05",capacity=600)

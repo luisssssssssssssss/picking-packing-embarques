@@ -16,7 +16,7 @@ def calendar_view(state, selected=None, preferred=None, today=None):
     tasks=[t for t in state["tasks"] if (str(t["fecha"])[:10]==selected.isoformat() if future else str(t["fecha"])[:10]<=today.isoformat())]
     allocations={t["AllocationId"] for t in tasks}
     units=[u for u in state["units"] if u["AllocationId"] in allocations]
-    preview=[dict(product=t["descripcion"],quantity=max(0,t["cantidad"]-t["empacado"]),
+    preview=[dict(id_pedido=t.get("id_pedido",t["pedido"]),product=t["descripcion"],quantity=max(0,t["cantidad"]-t["empacado"]),
                   store=t["destino"],source=t["almacen"]+" · "+t["ubicacion_nombre"])
              for t in tasks if t["estado"]!="CANCELLED"]
     if future:

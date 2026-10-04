@@ -23,7 +23,7 @@ def operator_view(state: dict, preferred_allocation: int | None = None) -> dict:
         return dict(action=action,payload=payload,quantity=int(qty),product=row["descripcion"],
             source=place(row),destination=destination,store=row["destino"],
             allocation_id=row["AllocationId"],line_id=row["line_id"],step=step,
-            order=row["pedido"],scheduled_date=str(row.get("fecha","")),
+            order=row.get("id_pedido",row["pedido"]),scheduled_date=str(row.get("fecha","")),
             hu=row.get("codigo"),can_adjust=action in ("pick","pack"))
 
     loading=[]

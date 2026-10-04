@@ -46,8 +46,6 @@ ORDER BY ml.IsPreferred DESC,ml.Id""",line["MaterialId"])
         while remaining>0:
             if (work-start).days>365:
                 raise BusinessError("El plan excede un año; aumenta capacidad o reduce pedidos.")
-            if work.weekday()==6:
-                work+=timedelta(days=1); continue
             did=day(db,ctx,work,capacity)
             free=db.scalar("""SELECT cd.BaseCapacity+cd.ExtraCapacity-cd.UnavailableCapacity-
 COALESCE((SELECT SUM(b.PlannedBaseQuantity-b.ReleasedBaseQuantity) FROM planning.CapacityBooking b
@@ -67,7 +65,7 @@ FROM planning.CapacityDay cd WHERE cd.Id=?""",did)
                       PlannedBaseQuantity=take,Status="OPEN")
             db.execute("UPDATE operations.SalesOrder SET Status='RELEASED',UpdatedAtUtc=SYSUTCDATETIME() WHERE Id=(SELECT OrderId FROM operations.OrderLine WHERE Id=?)",line["id"])
             remaining-=take; bookings+=1
-    return dict(message=f"{bookings} tareas programadas. Se respetaron reservas existentes; se programa de lunes a sábado, sin domingos.")
+    return dict(message=f"{bookings} tareas programadas. Se respetaron reservas existentes; se programa todos los días, incluidos sábados y domingos.")
 
 def pick(db,ctx,payload,operation):
     task=required(db,TASK_SQL+" WHERE tl.Id=?",payload["id"])

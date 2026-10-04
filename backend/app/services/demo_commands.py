@@ -34,6 +34,18 @@ def execute(action,payload,key,operator=False):
                             OperationCode="DEMO_"+action.upper(),RequestHash=digest,Outcome="SUCCEEDED",
                             ResponseCode=200,ResultJson="{}",CompletedAtUtc=now())
         result=ACTIONS[action](db,ctx,payload,operation)
+        from backend.app.repositories.demo_queries import LINE_SQL,TASK_SQL,HU_SQL
+        refs=[]
+        if action in ("pick","pack"):
+            refs=db.rows(TASK_SQL+" WHERE tl.Id=?",payload["id"])
+        elif action in ("stage","load"):
+            refs=[r for r in db.rows(HU_SQL) if r["id"]==payload["id"]]
+        elif action=="incident":
+            refs=db.rows(LINE_SQL+" WHERE l.Id=?",payload["id"])
+        elif action in ("create_trip","close"):
+            sid=payload["id"] if action=="close" else result.get("shipment_id")
+            refs=[r for r in db.rows(HU_SQL) if r["shipment_id"]==sid]
+        if refs:result["id_pedido"]=", ".join(sorted({r["id_pedido"] for r in refs}))
         db.execute("UPDATE platform.OperationRequest SET ResultJson=?,CompletedAtUtc=SYSUTCDATETIME() WHERE Id=?",dump(result),operation)
         db.insert("audit.AuditEvent",OperationId=operation,ActorUserId=ctx["actor"],ActionCode=action.upper(),
                   EntityType="DESKTOP_DEMO",EntityKey=str(payload.get("id",result.get("run_id",operation))),

@@ -28,11 +28,12 @@ BEGIN TRY
  BEGIN
    IF @marker <> N''PickingPackingEmbarques'' THROW 51000, ''Base de otra aplicacion; no se modifico.'', 1;
    IF OBJECT_ID(N''platform.SchemaMigration'',N''U'') IS NULL THROW 51000, ''Falta el historial; revisar manualmente.'', 1;
-   EXEC(N''IF (SELECT COUNT(*) FROM platform.SchemaMigration) <> 4 THROW 51000, ''''Version distinta; use las migraciones del repositorio.'''', 1;
+   EXEC(N''IF (SELECT COUNT(*) FROM platform.SchemaMigration) <> 5 THROW 51000, ''''Version distinta; use las migraciones del repositorio.'''', 1;
 IF NOT EXISTS (SELECT 1 FROM platform.SchemaMigration WHERE Version=''''001'''' AND ApplicationCode=''''PickingPackingEmbarques'''' AND ScriptChecksum=0x6eb79a0eba6a40da0387d7c8f752c38fffbfec768b15973c5dd2ec5c02aed1a5) THROW 51000, ''''Historial diferente; no se modifico la base.'''', 1;
 IF NOT EXISTS (SELECT 1 FROM platform.SchemaMigration WHERE Version=''''002'''' AND ApplicationCode=''''PickingPackingEmbarques'''' AND ScriptChecksum=0x27a748d064a39209ff56884ac9999a0716bfe5045c7b2eef5b422c45eb48fb5c) THROW 51000, ''''Historial diferente; no se modifico la base.'''', 1;
 IF NOT EXISTS (SELECT 1 FROM platform.SchemaMigration WHERE Version=''''003'''' AND ApplicationCode=''''PickingPackingEmbarques'''' AND ScriptChecksum=0xf41ac156ae1ee89b69c86b04fa5ee74086a555e3b1c282a4431f86a027603270) THROW 51000, ''''Historial diferente; no se modifico la base.'''', 1;
-IF NOT EXISTS (SELECT 1 FROM platform.SchemaMigration WHERE Version=''''004'''' AND ApplicationCode=''''PickingPackingEmbarques'''' AND ScriptChecksum=0xfb3fff542a337ca31679d4768ab4f5cc34212d0acade2b65cd5994c6b7049438) THROW 51000, ''''Historial diferente; no se modifico la base.'''', 1;'');
+IF NOT EXISTS (SELECT 1 FROM platform.SchemaMigration WHERE Version=''''004'''' AND ApplicationCode=''''PickingPackingEmbarques'''' AND ScriptChecksum=0xfb3fff542a337ca31679d4768ab4f5cc34212d0acade2b65cd5994c6b7049438) THROW 51000, ''''Historial diferente; no se modifico la base.'''', 1;
+IF NOT EXISTS (SELECT 1 FROM platform.SchemaMigration WHERE Version=''''005'''' AND ApplicationCode=''''PickingPackingEmbarques'''' AND ScriptChecksum=0x62e8272b15833968af7f756488c0582f0c4148a3a356d4fd45f4133f29fc6987) THROW 51000, ''''Historial diferente; no se modifico la base.'''', 1;'');
    COMMIT;
    PRINT N''La base ya tiene la version 0.2. Datos conservados.'';
    RETURN;
@@ -1964,6 +1965,13 @@ INSERT INTO [catalog].[HandlingUnitType] ([Code],[Name],[IsActive]) VALUES
 (N''''PALLET'''',N''''Tarima'''',1),(N''''BOX'''',N''''Caja'''',1);
 '');
 EXEC(N''INSERT INTO platform.SchemaMigration (ApplicationCode,Version,ScriptChecksum,AppliedAtUtc,ApplicationVersion) VALUES (N''''PickingPackingEmbarques'''',N''''004'''',0xfb3fff542a337ca31679d4768ab4f5cc34212d0acade2b65cd5994c6b7049438,SYSUTCDATETIME(),N''''0.2'''');'');
+
+EXEC(N''-- Customer-facing identifier; preserve internal keys and external order numbers.
+ALTER TABLE operations.SalesOrder ADD DisplayOrderId nvarchar(100) NULL;
+EXEC(N''''UPDATE operations.SalesOrder SET DisplayOrderId=ExternalOrderNumber'''');
+EXEC(N''''CREATE UNIQUE INDEX UX_SalesOrder_DisplayOrderId ON operations.SalesOrder(SourceSystemId,DisplayOrderId) WHERE DisplayOrderId IS NOT NULL'''');
+'');
+EXEC(N''INSERT INTO platform.SchemaMigration (ApplicationCode,Version,ScriptChecksum,AppliedAtUtc,ApplicationVersion) VALUES (N''''PickingPackingEmbarques'''',N''''005'''',0x62e8272b15833968af7f756488c0582f0c4148a3a356d4fd45f4133f29fc6987,SYSUTCDATETIME(),N''''0.2'''');'');
 
  COMMIT;
  SELECT DB_NAME() AS BaseCreada, COUNT(*) AS Tablas FROM sys.tables WHERE is_ms_shipped=0;

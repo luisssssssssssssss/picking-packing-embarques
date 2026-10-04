@@ -17,7 +17,7 @@ from backend.app.repositories.connection import open_connection, SqlConnectionEr
 APP_CODE = "PickingPackingEmbarques"
 APP_VERSION = "0.2"
 MIGRATION_DIR = Path(__file__).resolve().parents[2] / "database" / "migrations"
-MIGRATIONS = ("001_tables.sql", "002_relations.sql", "003_integrity.sql", "004_reference_data.sql")
+MIGRATIONS = ("001_tables.sql", "002_relations.sql", "003_integrity.sql", "004_reference_data.sql", "005_order_display_id.sql")
 
 
 class InstallationError(RuntimeError):

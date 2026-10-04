@@ -50,7 +50,7 @@ def supervisor_view(state: dict, day: date | None = None, now: datetime | None =
             detail = json.loads(event.get("detalle") or "{}")
         except (TypeError,ValueError):
             detail = {}
-        activity.append(dict(fecha=local.isoformat(),hora=local.strftime("%d/%m %H:%M"), accion=actions[event["accion"]],
+        activity.append(dict(id_pedido=detail.get("id_pedido",""),fecha=local.isoformat(),hora=local.strftime("%d/%m %H:%M"), accion=actions[event["accion"]],
                              responsable=event.get("responsable") or "Usuario demo",
                              detalle=detail.get("message",actions[event["accion"]])))
     units=state.get("units",[])

@@ -21,9 +21,11 @@ def parse_csv(content: str, delimiter: str = ","):
             if index>501:
                 errors.append(dict(line=index,message="Máximo 500 filas.")); break
             normalized={h:(row.get(h) or "").strip() for h in HEADERS}
-            for h in ("Producto","QuienPidio","Destino","Almacen"):
+            for h in ("ID","Producto","QuienPidio","Destino","Almacen"):
                 if h in row:normalized[h]=(row[h] or "").strip()
             problems=[]
+            if "ID" in row and not normalized["ID"]:
+                problems.append("ID no puede estar vacío")
             if None in row or any(row.get(h) is None for h in HEADERS):
                 problems.append("Número de columnas inconsistente")
             if any(not normalized[h] for h in HEADERS):

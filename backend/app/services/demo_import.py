@@ -38,7 +38,15 @@ ORDER BY ml.IsPreferred DESC,ml.Id""",material["Id"])
             if not wh or wh["Name"]!=d["Almacen"]:
                 errors.append(dict(line=item["number"],message="El almacén no coincide con la ubicación del producto"))
         item["material"]=material; item["destination"]=destination
+    display_ids=[]
     for number,items in groups.items():
+        ids={i["data"].get("ID",number) for i in items}
+        display_id=items[0]["data"].get("ID",number)
+        if len(ids)!=1:
+            errors.append(dict(line=items[0]["number"],message="Todas las líneas de un pedido deben tener el mismo ID"))
+        if any(db.scalar("SELECT CASE WHEN CAST(? AS nvarchar(100)) COLLATE DATABASE_DEFAULT=CAST(? AS nvarchar(100)) COLLATE DATABASE_DEFAULT THEN 1 ELSE 0 END",display_id,seen_id) for seen_id in display_ids) or db.one("SELECT Id FROM operations.SalesOrder WHERE SourceSystemId=? AND COALESCE(DisplayOrderId,ExternalOrderNumber)=?",ctx["source"],display_id):
+            errors.append(dict(line=items[0]["number"],message="ID de pedido duplicado: "+display_id))
+        display_ids.append(display_id)
         if len({i["data"]["CodigoCliente"] for i in items})>1:
             errors.append(dict(line=items[0]["number"],message="Un pedido no puede mezclar clientes"))
         if db.one("SELECT Id FROM operations.SalesOrder WHERE SourceSystemId=? AND ExternalOrderNumber=?",ctx["source"],number):
@@ -63,7 +71,7 @@ ORDER BY ml.IsPreferred DESC,ml.Id""",material["Id"])
                       Message=f"Fila {error['line']}: {error['message']}")
         return dict(message="Archivo rechazado. Ningún pedido fue incorporado.",errors=errors,run_id=run)
     for number,items in groups.items():
-        oid=db.insert("operations.SalesOrder",SourceSystemId=ctx["source"],ExternalOrderNumber=number,
+        oid=db.insert("operations.SalesOrder",SourceSystemId=ctx["source"],ExternalOrderNumber=number,DisplayOrderId=items[0]["data"].get("ID",number),
                       CustomerId=items[0]["destination"]["CustomerId"],Status="CREATED")
         revision=db.insert("operations.OrderRevision",OrderId=oid,RevisionNumber=1,
                            BusinessContentHash=hashlib.sha256(dump([i["data"] for i in items]).encode()).digest(),

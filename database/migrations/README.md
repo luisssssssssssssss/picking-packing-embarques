@@ -66,3 +66,5 @@ Remove-Item Env:RUN_SQL_INTEGRATION
 ```
 
 Las pruebas reales revierten sus datos al terminar. Los contadores IDENTITY pueden avanzar aunque los registros se reviertan; no son números consecutivos del negocio. Cubren existencia de tablas, constraints habilitados, duplicados, referencias inexistentes, ubicación de otro almacén, capacidad inválida y rollback de una migración fallida.
+
+Migración 005: agrega DisplayOrderId al pedido, conserva el número de origen y asigna ese número como ID visible a los pedidos anteriores. Índice único por sistema de origen. Ejecuta python -m backend.app.init_database antes de abrir una versión actualizada.

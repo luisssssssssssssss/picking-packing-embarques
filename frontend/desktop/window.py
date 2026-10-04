@@ -80,9 +80,9 @@ class Window(WindowSupport,QMainWindow):
         row.addWidget(button("Nuevo pedido de prueba",self.new_order,True))
         row.addWidget(button("Usar los 3 pedidos del ejemplo",self.import_sample))
         row.addWidget(button("Importar CSV o TXT…",self.csv_dialog));row.addStretch();v.addLayout(row)
-        self.overview=DataTable([("descripcion","Producto"),("destino","Entregar en"),("cantidad","Piezas"),("pendiente","Por embarcar"),("fecha","Fecha solicitada")]);v.addWidget(self.overview,2)
+        self.overview=DataTable([("id_pedido","ID pedido"),("descripcion","Producto"),("destino","Entregar en"),("cantidad","Piezas"),("pendiente","Por embarcar"),("fecha","Fecha solicitada")]);v.addWidget(self.overview,2)
         f,c=self.card();c.addWidget(label("¿Cuántas piezas puedes preparar al día?","section"))
-        c.addWidget(label("La app reparte los pendientes de lunes a sábado. Puedes cambiar la sugerencia de 600 piezas por almacén.","muted"))
+        c.addWidget(label("La app reparte los pendientes todos los días, incluidos domingos. Puedes cambiar la sugerencia de 600 piezas por almacén.","muted"))
         row=QHBoxLayout();row.addWidget(label("Piezas por día"))
         self.capacity=QSpinBox();self.capacity.setRange(1,100000);self.capacity.setValue(600);row.addWidget(self.capacity)
         row.addWidget(label("Empezar el"))
@@ -98,19 +98,19 @@ class Window(WindowSupport,QMainWindow):
     def build_work(self):
         v=self.page()
         v.addWidget(label("Elige una tarea. La cantidad pendiente y los datos del producto ya están completos.","muted"))
-        self.worklist=DataTable([("descripcion","Producto"),("destino","Tienda"),("fecha","Día simulado"),("cantidad","Programado"),("por_recoger","Por recoger"),("por_empacar","Por empacar")])
+        self.worklist=DataTable([("id_pedido","ID pedido"),("descripcion","Producto"),("destino","Tienda"),("fecha","Día simulado"),("cantidad","Programado"),("por_recoger","Por recoger"),("por_empacar","Por empacar")])
         self.worklist.itemSelectionChanged.connect(self.update_work_buttons);v.addWidget(self.worklist,2)
         row=QHBoxLayout();self.pick_button=button("Recoger producto",self.pick,True)
         self.pack_button=button("Empacar recogido",self.pack)
         row.addWidget(self.pick_button);row.addWidget(self.pack_button);row.addStretch();v.addLayout(row)
         v.addWidget(label("Tarimas listas para pasar al área de salida","section"))
-        self.units=DataTable([("descripcion","Producto"),("destino","Tienda"),("cantidad","Piezas"),("estado","Situación"),("fecha_empaque","Empacado el")]);v.addWidget(self.units,1)
+        self.units=DataTable([("id_pedido","ID pedido"),("descripcion","Producto"),("destino","Tienda"),("cantidad","Piezas"),("estado","Situación"),("fecha_empaque","Empacado el")]);v.addWidget(self.units,1)
         self.stage_button=button("Llevar tarima al área de salida",self.stage,True);v.addWidget(self.stage_button)
         self.units.itemSelectionChanged.connect(lambda:self.stage_button.setEnabled(bool(self.units.selected())))
         v.addWidget(label("Confirmación guiada de prueba: los códigos vienen completos. No equivale a un escaneo físico. El día de ejecución es el día simulado de la tarea.","muted"))
 
         v.addWidget(label("Historial de empaque · incluye tarimas ya embarcadas","section"))
-        self.packing_history=DataTable([("codigo","Tarima"),("descripcion","Producto"),("cantidad","Piezas"),("fecha_empaque","Empacado el"),("estado","Situación")])
+        self.packing_history=DataTable([("id_pedido","ID pedido"),("codigo","Tarima"),("descripcion","Producto"),("cantidad","Piezas"),("fecha_empaque","Empacado el"),("estado","Situación")])
         v.addWidget(self.packing_history)
         self.packing_history.add_dates(v,"fecha_empaque","Registro real de empaque",True)
 
@@ -118,10 +118,10 @@ class Window(WindowSupport,QMainWindow):
         v=self.page();row=QHBoxLayout()
         self.trip_button=button("Preparar nuevo viaje",self.create_trip,True);row.addWidget(self.trip_button)
         row.addWidget(button("Ver manifiesto",self.manifest));row.addStretch();v.addLayout(row)
-        self.shipments=DataTable([("viaje","Viaje"),("apertura","Abierto el"),("estado","Situación"),("unidades","Tarimas"),("cargadas","Ya cargadas")])
+        self.shipments=DataTable([("id_pedido","IDs pedidos"),("viaje","Viaje"),("apertura","Abierto el"),("estado","Situación"),("unidades","Tarimas"),("cargadas","Ya cargadas")])
         self.shipments.itemSelectionChanged.connect(self.update_route);v.addWidget(self.shipments,1)
         self.route=label("El viaje te mostrará dónde entregar primero.","route");v.addWidget(self.route)
-        self.loading=DataTable([("descripcion","Producto"),("destino","Tienda"),("parada","Entrega número"),("cantidad","Piezas"),("estado","Situación"),("fecha_empaque","Empacado el")]);v.addWidget(self.loading,2)
+        self.loading=DataTable([("id_pedido","ID pedido"),("descripcion","Producto"),("destino","Tienda"),("parada","Entrega número"),("cantidad","Piezas"),("estado","Situación"),("fecha_empaque","Empacado el")]);v.addWidget(self.loading,2)
         row=QHBoxLayout();self.load_button=button("Cargar siguiente tarima",self.load,True);row.addWidget(self.load_button)
         self.close_button=button("Cerrar embarque",self.close_trip);row.addWidget(self.close_button);v.addLayout(row)
         v.addWidget(label("Se carga primero lo que se entregará al final. Cerrar embarque registra la salida del almacén; no confirma la entrega en tienda.","muted"))
@@ -309,23 +309,14 @@ class Window(WindowSupport,QMainWindow):
         self.close_button.setEnabled(bool(row and row["estado"]=="LOADING" and row["cargadas"]==row["unidades"]))
 
     def create_trip(self):
-        staged=[u for u in self.state.get("units",[]) if u["estado"]=="STAGED" and u["shipment_id"] is None]
-        warehouses=sorted({u.get("almacen","Almacén") for u in staged})
-        if len(warehouses)>1:
-            from PySide6.QtWidgets import QInputDialog
-            name,ok=QInputDialog.getItem(self,"Almacén de salida","Prepara un viaje de un solo almacén:",warehouses,0,False)
-            if not ok:return
-            staged=[u for u in staged if u.get("almacen","Almacén")==name]
-        sites={u["DeliverySiteId"] for u in staged}
-        catalog=self.state.get("destinations_by_warehouse",{}).get(str(staged[0].get("WarehouseId")),self.state.get("destinations",[])) if staged else []
-        rows=[r for r in catalog if r["id"] in sites]
-        if not rows or len(rows)!=len(sites) or any(r["km"] is None for r in rows):
-            QMessageBox.information(self,"Faltan datos","Primero deja una tarima en el área de salida y registra los kilómetros de su destino.");return
-        rows.sort(key=lambda r:(r["km"],r["nombre"].casefold(),r["id"]))
-        text="PROPUESTA DE ENTREGA\n"+"\n".join(f"{i}. {r['nombre']} — {r['km']:g} km desde almacén" for i,r in enumerate(rows,1))
-        text+=f"\n\n{len(staged)} tarimas. Se carga primero lo de la última tienda.\nEsta propuesta ordena por distancia; no calcula una ruta vial."
-        if self.form("Crear este viaje",text,[]) is not None:
-            self.command("create_trip",unit_ids=[u["id"] for u in staged],distance_ids=[r["distance_id"] for r in rows])
+        from frontend.desktop.trip_selection import TripSelectionDialog
+        if any(s["estado"] in ("OPEN","LOADING") for s in self.state.get("shipments",[])):
+            QMessageBox.information(self,"Tráiler ocupado","Cierra el viaje abierto antes de crear otro. La demo utiliza un solo tráiler.");return
+        if not any(u["estado"]=="STAGED" and u["shipment_id"] is None for u in self.state.get("units",[])):
+            QMessageBox.information(self,"Sin tarimas disponibles","Primero lleva los productos al área de salida. Aquí podrás elegir cuáles enviar.");return
+        dialog=TripSelectionDialog(self.state,self)
+        if dialog.exec()==QDialog.DialogCode.Accepted and dialog.payload:
+            self.command("create_trip",**dialog.payload)
 
     def load(self):
         row=self.next_load
@@ -435,10 +426,10 @@ class Window(WindowSupport,QMainWindow):
         names={"IMPORT":"Importar pedidos","CREATE_ORDER":"Crear pedido","SAVE_DESTINATION":"Guardar destino","PLAN":"Organizar pedidos","PICK":"Recoger producto","PACK":"Empacar producto","STAGE":"Mover al área de salida","CREATE_TRIP":"Crear viaje","LOAD":"Cargar tarima","CLOSE":"Cerrar embarque","INCIDENT":"Registrar incidencia"}
         rows=[]
         for r in self.state.get("audit",[]):
-            try:detail=json.loads(r["detalle"]).get("message","")
-            except (ValueError,TypeError):detail=""
-            rows.append(dict(r,accion=names.get(r["accion"],r["accion"]),detalle=detail))
-        table=DataTable([("fecha","Fecha"),("accion","Acción"),("detalle","Qué pasó")]);table.populate(rows);layout.addWidget(table);table.add_dates(layout,"fecha","Fecha de acción",True);table.populate(rows)
+            try:detail=json.loads(r["detalle"])
+            except (ValueError,TypeError):detail={}
+            rows.append(dict(r,id_pedido=detail.get("id_pedido",""),accion=names.get(r["accion"],r["accion"]),detalle=detail.get("message","")))
+        table=DataTable([("id_pedido","ID pedido"),("fecha","Fecha"),("accion","Acción"),("detalle","Qué pasó")]);table.populate(rows);layout.addWidget(table);table.add_dates(layout,"fecha","Fecha de acción",True);table.populate(rows)
         layout.addWidget(button("Registrar incidencia",self.incident));layout.addWidget(button("Cerrar",dialog.accept));dialog.exec()
     def manifest(self):
         row=self.selected(self.shipments)
@@ -450,9 +441,9 @@ class Window(WindowSupport,QMainWindow):
             dialog=QDialog(self);dialog.setWindowTitle("Resumen del embarque");dialog.resize(860,560)
             layout=QVBoxLayout(dialog);layout.addWidget(label("Esto salió de tu almacén","section"))
             layout.addWidget(label(f"Viaje {row['viaje']} · Sello {result['seal']}","muted"))
-            units=result["units"];total=sum(u["cantidad"] for u in units)
+            units=[dict(u,id_pedido=u.get("id_pedido",u.get("pedido",""))) for u in result["units"]];total=sum(u["cantidad"] for u in units)
             layout.addWidget(label(f"{number(total)} piezas · {len(units)} tarimas","metric"))
-            table=DataTable([("descripcion","Producto"),("destino","Tienda"),("parada","Entrega"),("cantidad","Piezas")])
+            table=DataTable([("id_pedido","ID pedido"),("descripcion","Producto"),("destino","Tienda"),("parada","Entrega"),("cantidad","Piezas")])
             sorted_units=sorted(units,key=lambda u:u["parada"]);table.populate(sorted_units);layout.addWidget(table)
             layout.addWidget(label("La salida está registrada. La entrega al cliente no se confirma desde esta demo.","muted"))
 
@@ -465,7 +456,7 @@ class Window(WindowSupport,QMainWindow):
                     sep,
                 ]
                 for u in sorted_units:
-                    lines.append(f"{u['parada']:>2}. {u['destino']:<22} {u['descripcion']:<20} {number(u['cantidad']):>8} pzas")
+                    lines.append(f"{u['parada']:>2}. ID {u['id_pedido']} · {u['destino']:<22} {u['descripcion']:<20} {number(u['cantidad']):>8} pzas")
                 lines+=[sep,f"Generado: {datetime.now().strftime('%d/%m/%Y %H:%M')}"]
                 text="\n".join(lines)
                 QApplication.clipboard().setText(text)

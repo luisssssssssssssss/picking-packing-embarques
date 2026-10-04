@@ -81,6 +81,9 @@ class DataTable(QTableWidget):
                     value=f"{row[key]:g} km"
                 if key.startswith("fecha") or key=="apertura": value=value[:19].replace("T"," ")
                 item=QTableWidgetItem(value);item.setData(Qt.ItemDataRole.UserRole,row)
+                if key=="id_pedido":
+                    item.setToolTip(value)
+                    font=item.font();font.setBold(True);item.setFont(font)
                 if key=="estado":
                     item.setForeground(QColor("#008575" if row.get(key) not in ("FAILED","OPEN") else "#AD7621"))
                     font=item.font();font.setBold(True);item.setFont(font)
@@ -299,7 +302,7 @@ class WindowSupport:
         if not lines:
             QMessageBox.information(self,"Incidencias","Importa un pedido antes de registrar una incidencia.");return
         from PySide6.QtWidgets import QInputDialog
-        choices=[f"{r['pedido']} · línea {r['linea']} · {r['material']}" for r in lines]
+        choices=[f"{r.get('id_pedido',r['pedido'])} · línea {r['linea']} · {r['material']}" for r in lines]
         choice,ok=QInputDialog.getItem(self,"Pedido afectado","Selecciona la línea:",choices,0,False)
         if not ok:return
         row=lines[choices.index(choice)]

@@ -31,6 +31,13 @@ class OperatorDesktopTests(unittest.TestCase):
     def setUpClass(cls):cls.app=QApplication.instance() or QApplication([])
     def setUp(self):
         self.api=OperatorApi();self.window=OperatorWindow(self.api);self.window.show();self.wait()
+    def test_order_id_is_visible_beside_product(self):
+        state=self.api.request("GET","/demo/operator")
+        state["task"]["order"]="PED-001"
+        self.window.render(state)
+        self.assertEqual(self.window.order_id.text(),"ID pedido: PED-001")
+        self.assertTrue(self.window.order_id.isVisible())
+
     def wait(self):
         for _ in range(200):
             QTest.qWait(10)

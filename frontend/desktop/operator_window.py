@@ -72,6 +72,7 @@ class OperatorWindow(QMainWindow):
         card=QFrame();card.setObjectName("card");self.card_layout=QVBoxLayout(card)
         self.card_layout.setContentsMargins(18,16,18,16);self.card_layout.setSpacing(8)
         self.heading=label("Espera un momento","operatorInstruction");self.card_layout.addWidget(self.heading)
+        self.order_id=label("","operatorRoute");self.card_layout.addWidget(self.order_id)
         self.product=label("","operatorProduct");self.card_layout.addWidget(self.product)
         self.quantity_label=label("","operatorQuantity");self.card_layout.addWidget(self.quantity_label)
         self.store=label("","operatorRoute");self.card_layout.addWidget(self.store)
@@ -137,6 +138,7 @@ class OperatorWindow(QMainWindow):
             self.calendar.blockSignals(False)
         self.state=state;self.task=state.get("task");self.quantity.hide();self.paused=False
         task=self.task
+        self.order_id.setText("ID pedido: "+task["order"] if task else "")
         self.places.setVisible(task is not None);self.adjust_button.setVisible(bool(task and task["can_adjust"]))
         self.problem.setVisible(task is not None);self.problem.setEnabled(task is not None)
         if not task:
@@ -152,7 +154,7 @@ class OperatorWindow(QMainWindow):
             self.source_caption.setText("RECOGE EN" if task["action"]=="pick" else "LO RECOGISTE EN" if task["action"]=="pack" else "TARIMA EN")
             self.source.setText(task["source"]);self.destination.setText(task["destination"])
             self.destination_caption.setText("EMPACA EN" if task["action"]=="pack" else "LLEVA A")
-            reference="Pedido "+task["order"]
+            reference="ID pedido: "+task["order"]
             if task.get("scheduled_date"):reference+="\nDía planeado: "+task["scheduled_date"]+" · reloj simulado"
             if task.get("hu"):reference+="\nTarima "+task["hu"]
             self.reference.setText(reference)
@@ -163,7 +165,7 @@ class OperatorWindow(QMainWindow):
             item.style().unpolish(item);item.style().polish(item)
         if state.get("read_only"):
             self.heading.setText("Próximas tareas · solo consulta")
-            self.product.setText("\n\n".join(f'{r["quantity"]} piezas · {r["product"]}\nPara: {r["store"]}\nEn: {r["source"]}' for r in state.get("preview",[])) or "No hay tareas programadas para este día.")
+            self.product.setText("\n\n".join(f'ID {r.get("id_pedido","")} · {r["quantity"]} piezas · {r["product"]}\nPara: {r["store"]}\nEn: {r["source"]}' for r in state.get("preview",[])) or "No hay tareas programadas para este día.")
             self.confirm.hide();self.adjust_button.hide();self.problem.hide()
             self.status.setText("Puedes consultar este día, pero no confirmar trabajo.")
         else:

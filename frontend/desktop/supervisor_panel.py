@@ -33,7 +33,7 @@ class SupervisorPanel(QWidget):
         filters.addWidget(self.filter);v.addLayout(filters)
         self.task_rows=[]
         self.filter.currentIndexChanged.connect(self.filter_tasks)
-        self.queue=DataTable([("descripcion","Producto"),("destino","Entregar en"),("fecha","Día programado"),("periodo","Cuándo"),("por_recoger","Recoger"),("listo_empacar","Empacar ahora"),("situacion","Siguiente paso"),("responsable","Asignado a")])
+        self.queue=DataTable([("id_pedido","ID pedido"),("descripcion","Producto"),("destino","Entregar en"),("fecha","Día programado"),("periodo","Cuándo"),("por_recoger","Recoger"),("listo_empacar","Empacar ahora"),("situacion","Siguiente paso"),("responsable","Asignado a")])
         self.queue.setMinimumHeight(200);v.addWidget(self.queue)
         self.queue.add_dates(v,"fecha","Filtrar lista; indicadores de arriba siguen siendo de hoy")
         self.empty=label("","muted");v.addWidget(self.empty)
@@ -47,7 +47,7 @@ class SupervisorPanel(QWidget):
         c.addWidget(label("Esta capacidad corresponde a recoger productos. No mide la capacidad de empaque ni garantiza existencias.","muted"));row.addWidget(f);v.addLayout(row)
         v.addWidget(label("Equipo · últimas confirmaciones","section"))
         v.addWidget(label("La demo usa una cuenta compartida. Aquí ves acciones guardadas, no presencia en línea ni actividad individual de cada montacarguista.","muted"))
-        self.activity=DataTable([("hora","Fecha / hora local"),("responsable","Registrado por"),("accion","Acción"),("detalle","Resultado")])
+        self.activity=DataTable([("id_pedido","ID pedido"),("hora","Fecha / hora local"),("responsable","Registrado por"),("accion","Acción"),("detalle","Resultado")])
         self.activity.setMinimumHeight(200);v.addWidget(self.activity)
         self.activity.add_dates(v,"fecha","Últimas 8 acciones; historial completo en Ver historial")
         v.addWidget(label("¹ Incluye pendientes de días anteriores. El avance corresponde al día programado; una confirmación puede haberse realizado en otra fecha.","muted"))

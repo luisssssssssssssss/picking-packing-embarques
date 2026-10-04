@@ -1,0 +1,7 @@
+QuienPidio|Producto|CantidadSolicitada|UnidadMedida|Destino|Almacen|FechaRequeridaEntrega|NumeroPedido|LineaPedido|CodigoCliente|CodigoDestino|CodigoMaterial
+La Ralde|Coca-Cola 600 ml|120|PZA|La Ralde|Almacén cuarto de Víctor|2026-10-04|DEMO-LEGIBLE-202610-1|10|DEMO-CLI-RALDE|DEMO-DEST-RALDE|DEMO-MAT-01
+Oxxo|Sabritas Original 45 g|240|PZA|Oxxo|Almacén cuarto de Víctor|2026-10-05|DEMO-LEGIBLE-202610-2|10|DEMO-CLI-OXXO|DEMO-DEST-OXXO|DEMO-MAT-02
+Salma|Ruffles Queso 50 g|180|PZA|Salma|Almacén cuarto de Víctor|2026-10-06|DEMO-LEGIBLE-202610-3|10|DEMO-CLI-SALMA|DEMO-DEST-SALMA|DEMO-MAT-03
+La Ralde|Doritos Nacho 58 g|120|PZA|La Ralde|Almacén cuarto de Huicho|2026-10-07|DEMO-LEGIBLE-202610-4|10|DEMO-CLI-RALDE|DEMO-DEST-RALDE|DEMO-MAT-04
+Oxxo|Agua Ciel 1 L|120|PZA|Oxxo|Almacén cuarto de Huicho|2026-10-07|DEMO-LEGIBLE-202610-5|10|DEMO-CLI-OXXO|DEMO-DEST-OXXO|DEMO-MAT-05
+Salma|Gansito 50 g|120|PZA|Salma|Almacén cuarto de Huicho|2026-10-07|DEMO-LEGIBLE-202610-6|10|DEMO-CLI-SALMA|DEMO-DEST-SALMA|DEMO-MAT-06

@@ -89,3 +89,9 @@ Remove-Item Env:RUN_SQL_INTEGRATION
 La prueba de recorrido crea una base _Test de nombre único y elimina únicamente esa base al terminar. No ejecutarla con datos de producción.
 
 Para generar el ejecutable se usa PyInstaller (dependencia de desarrollo); consultar scripts/compilar-demo.ps1. Un paquete compilado aceptado por las políticas del equipo no necesitaría Python instalado, pero sí SQL Server/ODBC y la configuración/carpeta del proyecto indicadas. Actualmente se usa Python para ejecutarla.
+
+## Calendario de trabajo
+
+Desde el 3 de octubre, la planeación admite lunes a sábado y omite domingos. La capacidad indicada también aplica al sábado. Las reservas existentes conservan su fecha; no se reprograman automáticamente. No hay bloqueo de picking o packing por el día actual.
+
+Consulta [filtros de fechas y ejemplo TXT](fechas-y-txt.md) para ordenar las listas, buscar un día e importar entregas de prueba.

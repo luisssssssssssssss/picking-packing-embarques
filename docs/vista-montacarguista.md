@@ -31,3 +31,7 @@ Creados: backend/app/services/demo_operator.py, frontend/desktop/operator_window
 Modificados: consulta demo_queries.py (nombres de ubicaciones y referencias), main.py (consulta del operador), client.py (estado de errores HTTP), desktop_launcher.py (ventana inicial), prueba de autenticación y documentación.
 
 La pantalla administrativa window.py y el módulo demo_catalog.py no se modificaron en este incremento, para reducir cruces con la tarea de productos del compañero. Rama: codex/vista-montacarguista. Integrado en main junto con las mejoras posteriores de supervisión.
+
+## Ajuste del 3 de octubre de 2026
+
+Por solicitud del usuario, se recupera la confirmación directa por paso, sin escaneo ni dígitos verificadores. Se conserva la paleta oscura azul y verde. Permanecen cantidades parciales, incidencias y reintentos seguros. No se modifican pedidos ni reservas existentes. Validación: 5 pruebas de interfaz del operador y 7 de backend (incluye recorrido SQL y sábado).

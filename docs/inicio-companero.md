@@ -63,3 +63,19 @@ Validación de publicación: 42 pruebas backend y 14 de interfaz aprobadas.
 ## Próxima tarea acordada
 
 Seguir la [guía de mejoras de usabilidad](tareas/mejorar-usabilidad.md): cinco pasos, reparto de trabajo y criterios de prueba. Son ajustes de presentación; no nuevas funciones.
+
+
+## Actualización del 4 de octubre
+
+Con tus cambios guardados, actualiza main con git pull --ff-only origin main.
+Abre Iniciar Demo.cmd para el operador o Iniciar Supervisor.cmd para ambas vistas.
+No hay dependencias nuevas ni nuevas tablas. Al iniciar se preparan los catálogos ficticios de ambos almacenes y los destinatarios.
+
+- Operador sin escaneo, con calendario: hoy permite confirmar; días futuros solo consulta.
+- Planeación de lunes a sábado, capacidad por almacén.
+- Filtros de fechas e historial de empaque.
+- Almacenes de Víctor y Huicho; destinatarios La Ralde (7 km), Oxxo (1 km) y Salma (20 km).
+- Importa samples/txt/pedidos_legibles.txt desde Pedidos → Importar CSV o TXT. El archivo no se carga automáticamente y sus fechas son fijas de prueba.
+
+Consulta [calendario y catálogos](calendario-y-catalogos.md) y [fechas y TXT](fechas-y-txt.md).
+Validación antes de publicar: 47 pruebas backend y 17 de interfaz aprobadas.

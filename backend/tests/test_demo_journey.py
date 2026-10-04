@@ -126,5 +126,17 @@ class DemoJourneyTests(unittest.TestCase):
         self.assertEqual(snapshot()["totals"]["embarcado"],1624)
 
 
+    def test_z_txt_deliveries_import_and_duplicate(self):
+        text=Path("samples/txt/entregas_domingo_a_miercoles.txt").read_text(encoding="utf-8")
+        payload=dict(filename="entregas.txt",content=text)
+        result=execute("import",payload,uuid4())
+        self.assertEqual(result["errors"],[])
+        lines=[r for r in snapshot()["lines"] if r["pedido"].startswith("DEMO-TXT-")]
+        self.assertEqual(len(lines),4)
+        self.assertEqual(sorted(str(r["fecha"]) for r in lines),
+                         ["2026-10-04","2026-10-05","2026-10-06","2026-10-07"])
+        self.assertEqual(sum(r["cantidad"] for r in lines),900)
+        self.assertTrue(execute("import",payload,uuid4())["duplicate"])
+
 if __name__=="__main__":
     unittest.main()

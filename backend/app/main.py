@@ -1,5 +1,6 @@
 """Loopback-only demonstration API. Desktop clients never receive SQL credentials."""
 from contextlib import asynccontextmanager
+from datetime import date
 import hmac
 import logging
 import os
@@ -56,9 +57,9 @@ def get_snapshot():
     return snapshot()
 
 @app.get("/demo/operator",dependencies=[Depends(authorize)])
-def get_operator(preferred_allocation: int | None = None):
-    from backend.app.services.demo_operator import operator_view
-    return operator_view(snapshot(),preferred_allocation)
+def get_operator(preferred_allocation: int | None = None, selected_date: date | None = None):
+    from backend.app.services.demo_operator_calendar import calendar_view
+    return calendar_view(snapshot(),selected_date,preferred_allocation)
 
 
 @app.get("/demo/sample",dependencies=[Depends(authorize)])
@@ -67,12 +68,12 @@ def sample():
     return {"filename":path.name,"content":path.read_text(encoding="utf-8-sig")}
 
 @app.post("/demo/commands/{action}",dependencies=[Depends(authorize)])
-def command(action:str,body:Command):
+def command(action:str,body:Command, operator: bool = False):
     # A local demonstration contract: reject huge payloads before parsing.
     import json
     if len(json.dumps(body.payload))>1_500_000: raise HTTPException(413,"Archivo demasiado grande.")
     try:
-        return execute(action,body.payload,body.key)
+        return execute(action,body.payload,body.key,operator=operator)
     except (KeyError,TypeError,ValueError) as error:
         if isinstance(error,BusinessError): raise
         raise HTTPException(422,"Faltan datos o tienen un formato inválido.") from None
@@ -86,3 +87,7 @@ def manifest(ident:int):
         row=db.one("SELECT sc.ManifestJson FROM shipping.ShipmentClosure sc JOIN shipping.Shipment s ON s.Id=sc.ShipmentId JOIN planning.Trip t ON t.Id=s.TripId WHERE s.Id=? AND t.Code LIKE 'DEMO-VIA-%'",ident)
         if not row: raise HTTPException(404,"El manifiesto estará disponible al cerrar el viaje.")
         return json.loads(row["ManifestJson"])
+
+@app.post("/demo/operator/commands/{action}",dependencies=[Depends(authorize)])
+def operator_command(action:str,body:Command):
+    return command(action,body,operator=True)

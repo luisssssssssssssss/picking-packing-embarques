@@ -70,6 +70,8 @@ def seed(db):
         row=next((r for r in destinations(db) if r["codigo"]==code),None)
         if row and row["km"] is None:
             record_distance(db,row["address_id"],km)
+    from backend.app.services.demo_familiar import familiar_catalog
+    familiar_catalog(db,actor,unit,wh)
     return dict(actor=actor,source=source,profile=pid,unit=unit,warehouse=wh,pool=pool,trailer=trailer,driver=driver,locations=locations)
 
 def bootstrap():

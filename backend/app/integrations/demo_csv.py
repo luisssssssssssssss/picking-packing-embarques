@@ -5,12 +5,12 @@ from decimal import Decimal, InvalidOperation
 import io
 from backend.app.services.demo_seed import HEADERS
 
-def parse_csv(content: str):
+def parse_csv(content: str, delimiter: str = ","):
     errors=[]
     rows=[]
     if len(content.encode("utf-8"))>1_000_000:
         return [],[dict(line=0,message="Máximo 1 MB por archivo de demostración.")]
-    reader=csv.DictReader(io.StringIO(content.lstrip("\ufeff"),newline=""))
+    reader=csv.DictReader(io.StringIO(content.lstrip("\ufeff"),newline=""),delimiter=delimiter)
     if not reader.fieldnames or any(h not in reader.fieldnames for h in HEADERS):
         return [],[dict(line=1,message="Faltan columnas: "+", ".join(h for h in HEADERS if not reader.fieldnames or h not in reader.fieldnames))]
     if len(set(reader.fieldnames))!=len(reader.fieldnames):
@@ -21,6 +21,8 @@ def parse_csv(content: str):
             if index>501:
                 errors.append(dict(line=index,message="Máximo 500 filas.")); break
             normalized={h:(row.get(h) or "").strip() for h in HEADERS}
+            for h in ("Producto","QuienPidio","Destino","Almacen"):
+                if h in row:normalized[h]=(row[h] or "").strip()
             problems=[]
             if None in row or any(row.get(h) is None for h in HEADERS):
                 problems.append("Número de columnas inconsistente")
@@ -47,6 +49,6 @@ def parse_csv(content: str):
             for problem in problems: errors.append(dict(line=reader.line_num,message=problem))
             rows.append(dict(number=reader.line_num,data=normalized))
     except csv.Error:
-        errors.append(dict(line=reader.line_num,message="CSV mal formado"))
+        errors.append(dict(line=reader.line_num,message="Archivo delimitado mal formado"))
     if not rows and not errors: errors.append(dict(line=2,message="El archivo no tiene pedidos"))
     return rows,errors

@@ -2,7 +2,7 @@
 import unittest
 from PySide6.QtWidgets import QApplication,QTableWidget
 from PySide6.QtTest import QTest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt,QDate
 from frontend.desktop.operator_window import OperatorWindow
 from frontend.desktop.client import ApiError
 
@@ -79,3 +79,21 @@ class OperatorDesktopTests(unittest.TestCase):
         self.assertGreaterEqual(self.window.confirm.height(),60)
         self.assertGreaterEqual(self.window.confirm.geometry().top(),0)
         self.assertLessEqual(self.window.confirm.geometry().bottom(),self.window.centralWidget().height())
+
+    def test_calendar_future_is_preview_and_never_posts(self):
+        from datetime import datetime,timedelta
+        from frontend.desktop.date_controls import LOCAL_ZONE
+        today=datetime.now(LOCAL_ZONE).date()
+        state=self.api.request("GET","/demo/operator")
+        state.update(today=today.isoformat(),selected_date=(today+timedelta(days=1)).isoformat(),
+                     task=None,read_only=True,preview=[dict(product="Coca-Cola",quantity=600,store="La Ralde",source="Víctor")])
+        self.window.render(state)
+        self.assertFalse(self.window.confirm.isVisible())
+        self.assertIn("600",self.window.product.text())
+        self.window.confirm_task()
+        self.assertEqual(self.api.posts,[])
+        self.assertEqual(self.window.calendar.minimumDate(),QDate(today.year,today.month,today.day))
+        self.window.calendar.blockSignals(True)
+        self.window.calendar.setDate(QDate(today.year,today.month,today.day).addDays(-1))
+        self.window.calendar.blockSignals(False)
+        self.assertEqual(self.window.calendar.date(),self.window.calendar.minimumDate())

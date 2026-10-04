@@ -13,7 +13,7 @@ from backend.app.services.demo_catalog import save_destination,create_order
 ACTIONS={"save_destination":save_destination,"create_order":create_order,"import":import_orders,"plan":plan,"pick":pick,"pack":pack,"stage":stage,
          "create_trip":create_trip,"load":load,"close":close,"incident":incident}
 
-def execute(action,payload,key):
+def execute(action,payload,key,operator=False):
     if action not in ACTIONS: raise BusinessError("Acción desconocida.")
     try: UUID(str(key))
     except ValueError: raise BusinessError("Identificador de operación inválido.") from None
@@ -27,6 +27,9 @@ def execute(action,payload,key):
             if bytes(previous["RequestHash"])!=digest:
                 raise BusinessError("El identificador ya se usó con otros datos.")
             return json.loads(previous["ResultJson"])
+        if operator:
+            from backend.app.services.demo_operator_calendar import validate_operator_day
+            validate_operator_day(db,action,payload)
         operation=db.insert("platform.OperationRequest",ActorUserId=ctx["actor"],IdempotencyKey=str(key),
                             OperationCode="DEMO_"+action.upper(),RequestHash=digest,Outcome="SUCCEEDED",
                             ResponseCode=200,ResultJson="{}",CompletedAtUtc=now())

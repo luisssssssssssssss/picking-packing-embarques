@@ -47,7 +47,7 @@ class Job(QRunnable):
 
 class DataTable(QTableWidget):
     def __init__(self,columns):
-        super().__init__(0,len(columns));self.columns=columns
+        super().__init__(0,len(columns));self.columns=columns;self.source_rows=[];self.date_controls=None
         self.setHorizontalHeaderLabels([title for _,title in columns])
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -56,7 +56,15 @@ class DataTable(QTableWidget):
         self.verticalHeader().hide();self.verticalHeader().setDefaultSectionSize(44)
         self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.setMinimumHeight(160)
+    def add_dates(self,layout,key,caption,utc=False):
+        from frontend.desktop.date_controls import DateControls
+        self.date_controls=DateControls(self,key,caption,utc)
+        layout.insertWidget(layout.indexOf(self),self.date_controls)
+        return self.date_controls
+
     def populate(self,rows):
+        self.source_rows=list(rows)
+        if self.date_controls:rows=self.date_controls.apply(self.source_rows)
         self.blockSignals(True)
         previous=self.selected()
         self.clearSelection()
@@ -71,7 +79,7 @@ class DataTable(QTableWidget):
                 else: value=str(value)
                 if key=="km" and isinstance(row.get(key),(int,float)):
                     value=f"{row[key]:g} km"
-                if key in ("fecha","apertura"): value=value[:19].replace("T"," ")
+                if key.startswith("fecha") or key=="apertura": value=value[:19].replace("T"," ")
                 item=QTableWidgetItem(value);item.setData(Qt.ItemDataRole.UserRole,row)
                 if key=="estado":
                     item.setForeground(QColor("#008575" if row.get(key) not in ("FAILED","OPEN") else "#AD7621"))
@@ -261,7 +269,7 @@ class WindowSupport:
 
 
     def open_csv(self):
-        path,_=QFileDialog.getOpenFileName(self,"Seleccionar CSV","","CSV (*.csv)")
+        path,_=QFileDialog.getOpenFileName(self,"Seleccionar CSV o TXT","","Archivos de pedidos (*.csv *.txt)")
         if not path:return
         try:
             if Path(path).stat().st_size>1_000_000: raise ValueError("La demo admite archivos de hasta 1 MB.")

@@ -26,7 +26,7 @@ OUTER APPLY (SELECT SUM(i.BaseQuantity) qty FROM operations.FulfillmentAllocatio
 TASK_SQL = """
 SELECT au.DisplayName AS responsable,tl.Id AS id,tl.TaskId,tl.AllocationId,l.Id AS line_id,tl.PlannedBaseQuantity AS cantidad,
  so.ExternalOrderNumber AS pedido,r.MaterialCodeSnapshot AS material,m.Description AS descripcion,
- ds.Name AS destino,loc.Code AS ubicacion,loc.Name AS ubicacion_nombre,w.Name AS almacen,tl.Status AS estado,
+ ds.Name AS destino,loc.Code AS ubicacion,loc.Name AS ubicacion_nombre,w.Id AS WarehouseId,w.Name AS almacen,tl.Status AS estado,
  cb.Id AS booking_id,cd.WorkDate AS fecha,cb.PoolId,
  COALESCE(p.qty,0) AS recogido,COALESCE(k.qty,0) AS empacado
 FROM warehouse.PickingTaskLine tl
@@ -47,9 +47,9 @@ OUTER APPLY (SELECT SUM(BaseQuantity) qty FROM warehouse.PickConfirmation WHERE 
 OUTER APPLY (SELECT SUM(i.BaseQuantity) qty FROM warehouse.PickConfirmation pc JOIN warehouse.PackingReceipt pr ON pr.PickConfirmationId=pc.Id JOIN warehouse.HandlingUnitItem i ON i.ReceiptId=pr.Id WHERE pc.TaskLineId=tl.Id) k
 """
 HU_SQL = """
-SELECT hu.Id AS id,hu.Code AS codigo,hu.Status AS estado,ds.Name AS destino,
+SELECT hu.CreatedAtUtc AS fecha_empaque,hu.Id AS id,hu.Code AS codigo,hu.Status AS estado,ds.Name AS destino,
  hu.DeliverySiteId,MIN(fa.Id) AS AllocationId,MIN(r.OrderLineId) AS line_id,
- w.Name AS almacen,loc.Name AS ubicacion_nombre,loc.Code AS ubicacion,
+ w.Id AS WarehouseId,w.Name AS almacen,loc.Name AS ubicacion_nombre,loc.Code AS ubicacion,
  MIN(so.ExternalOrderNumber) AS pedido,MIN(r.MaterialCodeSnapshot) AS material,MIN(m.Description) AS descripcion,
  SUM(i.BaseQuantity) AS cantidad,
  su.Id AS shipment_unit_id,su.ShipmentId AS shipment_id,ts.SequenceNumber AS parada
@@ -68,7 +68,7 @@ JOIN operations.SalesOrder so ON so.Id=r.OrderId
 JOIN integration.SourceSystem src ON src.Id=so.SourceSystemId AND src.Code='DEMO_DESKTOP'
 LEFT JOIN shipping.ShipmentUnit su ON su.HandlingUnitId=hu.Id AND su.ReleasedAtUtc IS NULL
 LEFT JOIN planning.TripStop ts ON ts.Id=su.StopId
-GROUP BY hu.Id,hu.Code,hu.Status,ds.Name,hu.DeliverySiteId,su.Id,su.ShipmentId,ts.SequenceNumber,w.Name,loc.Name,loc.Code
+GROUP BY hu.CreatedAtUtc,hu.Id,hu.Code,hu.Status,ds.Name,hu.DeliverySiteId,su.Id,su.ShipmentId,ts.SequenceNumber,w.Id,w.Name,loc.Name,loc.Code
 """
 
 def snapshot():
@@ -77,11 +77,12 @@ def snapshot():
         tasks=db.rows(TASK_SQL+" ORDER BY cd.WorkDate,tl.Id")
         units=db.rows(HU_SQL+" ORDER BY hu.Id DESC")
         days=db.rows("""
-SELECT cd.Id AS id,cd.WorkDate AS fecha,cd.BaseCapacity+cd.ExtraCapacity-cd.UnavailableCapacity AS capacidad,
+SELECT w.Name AS almacen,cd.Id AS id,cd.WorkDate AS fecha,cd.BaseCapacity+cd.ExtraCapacity-cd.UnavailableCapacity AS capacidad,
  COALESCE(SUM(cb.PlannedBaseQuantity-cb.ReleasedBaseQuantity),0) AS reservado
-FROM planning.CapacityDay cd JOIN planning.CapacityPool p ON p.Id=cd.PoolId AND p.Code='DEMO-PICK'
+FROM planning.CapacityDay cd JOIN planning.CapacityPool p ON p.Id=cd.PoolId AND p.Code LIKE 'DEMO-PICK%'
+JOIN catalog.Warehouse w ON w.Id=p.WarehouseId
 LEFT JOIN planning.CapacityBooking cb ON cb.CapacityDayId=cd.Id AND cb.Status IN ('COMMITTED','COMPLETED')
-GROUP BY cd.Id,cd.WorkDate,cd.BaseCapacity,cd.ExtraCapacity,cd.UnavailableCapacity ORDER BY cd.WorkDate""")
+GROUP BY w.Name,cd.Id,cd.WorkDate,cd.BaseCapacity,cd.ExtraCapacity,cd.UnavailableCapacity ORDER BY cd.WorkDate""")
         shipments=db.rows("""
 SELECT s.Id AS id,t.Code AS viaje,s.Status AS estado,s.SealNumber AS sello,s.OpenedAtUtc AS apertura,tr.Code AS trailer,loc.Name AS anden,
  (SELECT COUNT(*) FROM shipping.ShipmentUnit WHERE ShipmentId=s.Id) AS unidades,
@@ -107,6 +108,7 @@ LEFT JOIN planning.DistanceReference dr ON dr.Id=st.DistanceFromPreviousId ORDER
                 stop.update(km=info["km"],destino=info["destination"],km_basis="warehouse")
         products=db.rows("SELECT Id AS id,Code AS codigo,Description AS nombre FROM catalog.Material WHERE Code LIKE 'DEMO-%' AND IsActive=1 ORDER BY Code")
         sites=destinations(db)
+        sites_by_warehouse={str(w["Id"]):destinations(db,w["Id"]) for w in db.rows("SELECT Id FROM catalog.Warehouse WHERE Code IN ('DEMO-ALM','DEMO-HUICHO')")}
         imports=db.rows("""
 SELECT TOP(20) r.Id AS id,f.OriginalFileName AS archivo,r.Status AS estado,r.CreatedAtUtc AS fecha,
  (SELECT COUNT(*) FROM integration.ImportError e WHERE e.RunId=r.Id) AS errores
@@ -116,7 +118,7 @@ JOIN integration.SourceSystem src ON src.Id=f.SourceSystemId AND src.Code='DEMO_
 SELECT TOP(50) e.RunId AS importacion,e.Message AS mensaje FROM integration.ImportError e
 JOIN integration.ImportRun r ON r.Id=e.RunId JOIN integration.ImportedFile f ON f.Id=r.FileId
 JOIN integration.SourceSystem src ON src.Id=f.SourceSystemId AND src.Code='DEMO_DESKTOP' ORDER BY e.Id DESC""")
-        audit=db.rows("SELECT TOP(80) e.ActionCode AS accion,e.EntityKey AS referencia,e.AfterJson AS detalle,e.OccurredAtUtc AS fecha,u.DisplayName AS responsable FROM audit.AuditEvent e LEFT JOIN security.AppUser u ON u.Id=e.ActorUserId WHERE e.EntityType='DESKTOP_DEMO' ORDER BY e.Id DESC")
+        audit=db.rows("SELECT e.ActionCode AS accion,e.EntityKey AS referencia,e.AfterJson AS detalle,e.OccurredAtUtc AS fecha,u.DisplayName AS responsable FROM audit.AuditEvent e LEFT JOIN security.AppUser u ON u.Id=e.ActorUserId WHERE e.EntityType='DESKTOP_DEMO' ORDER BY e.Id DESC")
         operational_audit=db.rows("""SELECT TOP(8) e.ActionCode AS accion,e.AfterJson AS detalle,
 e.OccurredAtUtc AS fecha,u.DisplayName AS responsable
 FROM audit.AuditEvent e LEFT JOIN security.AppUser u ON u.Id=e.ActorUserId
@@ -125,10 +127,10 @@ ORDER BY e.Id DESC""")
         incidents=db.rows("""
 SELECT TOP(40) i.Id AS id,i.Description AS descripcion,i.Status AS estado,i.CreatedAtUtc AS fecha
 FROM quality.Incident i JOIN quality.IncidentType t ON t.Id=i.TypeId AND t.Code='DEMO-INC' ORDER BY i.Id DESC""")
-        locations=db.rows("""SELECT loc.LocationType AS kind,loc.Name AS nombre,loc.Code AS codigo,w.Name AS almacen
+        locations=db.rows("""SELECT loc.LocationType AS kind,loc.Name AS nombre,loc.Code AS codigo,w.Id AS WarehouseId,w.Name AS almacen
 FROM catalog.Location loc JOIN catalog.Warehouse w ON w.Id=loc.WarehouseId
-WHERE w.Code='DEMO-ALM' AND loc.Code IN ('DEMO-PACK','DEMO-STG','DEMO-DOCK') AND loc.IsActive=1""")
-        state = dict(locations=locations,products=products,destinations=sites,lines=lines,tasks=tasks,units=units,days=days,shipments=shipments,stops=stops,
+WHERE w.Code IN ('DEMO-ALM','DEMO-HUICHO') AND loc.LocationType IN ('PACKING','STAGING','DOCK') AND loc.IsActive=1""")
+        state = dict(destinations_by_warehouse=sites_by_warehouse,locations=locations,products=products,destinations=sites,lines=lines,tasks=tasks,units=units,days=days,shipments=shipments,stops=stops,
                     imports=imports,errors=errors,audit=audit,operational_audit=operational_audit,incidents=incidents,
                     totals={key:sum(row[key] for row in lines) for key in ("cantidad","planeado","recogido","empacado","embarcado")})
 

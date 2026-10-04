@@ -32,6 +32,15 @@ class Window(WindowSupport,QMainWindow):
         self.pages=QStackedWidget();wl.addWidget(self.pages,1)
         self.toast=label("Conectando con tu almacén…","toast");wl.addWidget(self.toast)
         self.build_home();self.build_orders();self.build_work();self.build_trips();self.build_destinations()
+        for table,key,caption,utc in [
+            (self.overview,"fecha","Entrega solicitada",False),
+            (self.calendar,"fecha","Día de preparación",False),
+            (self.worklist,"fecha","Día programado",False),
+            (self.units,"fecha_empaque","Fecha de empaque",True),
+            (self.shipments,"apertura","Apertura del viaje",True),
+            (self.loading,"fecha_empaque","Fecha de empaque",True),
+            (self.destinations,"fecha_alta","Alta del destino",True)]:
+            table.add_dates(table.parentWidget().layout(),key,caption,utc)
         self.nav.currentRowChanged.connect(self.navigate);self.nav.setCurrentRow(0)
         self.monitor=QTimer(self);self.monitor.setInterval(10000)
         self.monitor.timeout.connect(self.poll_supervisor);self.monitor.start()
@@ -70,10 +79,10 @@ class Window(WindowSupport,QMainWindow):
         v=self.page();row=QHBoxLayout()
         row.addWidget(button("Nuevo pedido de prueba",self.new_order,True))
         row.addWidget(button("Usar los 3 pedidos del ejemplo",self.import_sample))
-        row.addWidget(button("Importar un CSV…",self.csv_dialog));row.addStretch();v.addLayout(row)
+        row.addWidget(button("Importar CSV o TXT…",self.csv_dialog));row.addStretch();v.addLayout(row)
         self.overview=DataTable([("descripcion","Producto"),("destino","Entregar en"),("cantidad","Piezas"),("pendiente","Por embarcar"),("fecha","Fecha solicitada")]);v.addWidget(self.overview,2)
         f,c=self.card();c.addWidget(label("¿Cuántas piezas puedes preparar al día?","section"))
-        c.addWidget(label("La app reparte los pendientes entre días laborables. Puedes cambiar la sugerencia de 600 piezas.","muted"))
+        c.addWidget(label("La app reparte los pendientes de lunes a sábado. Puedes cambiar la sugerencia de 600 piezas por almacén.","muted"))
         row=QHBoxLayout();row.addWidget(label("Piezas por día"))
         self.capacity=QSpinBox();self.capacity.setRange(1,100000);self.capacity.setValue(600);row.addWidget(self.capacity)
         row.addWidget(label("Empezar el"))
@@ -84,7 +93,7 @@ class Window(WindowSupport,QMainWindow):
         row.addWidget(self.start)
         row.addStretch();self.plan_button=button("Organizar pedidos pendientes",self.plan,True);row.addWidget(self.plan_button)
         c.addLayout(row);c.addWidget(label("Los días ya programados conservan su capacidad. Las cantidades que no caben continúan en el siguiente día disponible.","muted"));v.addWidget(f)
-        self.calendar=DataTable([("fecha","Día de preparación"),("reservado","Piezas programadas"),("libre","Capacidad restante")]);v.addWidget(self.calendar,1)
+        self.calendar=DataTable([("almacen","Almacén"),("fecha","Día de preparación"),("reservado","Piezas programadas"),("libre","Capacidad restante")]);v.addWidget(self.calendar,1)
 
     def build_work(self):
         v=self.page()
@@ -95,19 +104,24 @@ class Window(WindowSupport,QMainWindow):
         self.pack_button=button("Empacar recogido",self.pack)
         row.addWidget(self.pick_button);row.addWidget(self.pack_button);row.addStretch();v.addLayout(row)
         v.addWidget(label("Tarimas listas para pasar al área de salida","section"))
-        self.units=DataTable([("descripcion","Producto"),("destino","Tienda"),("cantidad","Piezas"),("estado","Situación")]);v.addWidget(self.units,1)
+        self.units=DataTable([("descripcion","Producto"),("destino","Tienda"),("cantidad","Piezas"),("estado","Situación"),("fecha_empaque","Empacado el")]);v.addWidget(self.units,1)
         self.stage_button=button("Llevar tarima al área de salida",self.stage,True);v.addWidget(self.stage_button)
         self.units.itemSelectionChanged.connect(lambda:self.stage_button.setEnabled(bool(self.units.selected())))
         v.addWidget(label("Confirmación guiada de prueba: los códigos vienen completos. No equivale a un escaneo físico. El día de ejecución es el día simulado de la tarea.","muted"))
+
+        v.addWidget(label("Historial de empaque · incluye tarimas ya embarcadas","section"))
+        self.packing_history=DataTable([("codigo","Tarima"),("descripcion","Producto"),("cantidad","Piezas"),("fecha_empaque","Empacado el"),("estado","Situación")])
+        v.addWidget(self.packing_history)
+        self.packing_history.add_dates(v,"fecha_empaque","Registro real de empaque",True)
 
     def build_trips(self):
         v=self.page();row=QHBoxLayout()
         self.trip_button=button("Preparar nuevo viaje",self.create_trip,True);row.addWidget(self.trip_button)
         row.addWidget(button("Ver manifiesto",self.manifest));row.addStretch();v.addLayout(row)
-        self.shipments=DataTable([("viaje","Viaje"),("estado","Situación"),("unidades","Tarimas"),("cargadas","Ya cargadas")])
+        self.shipments=DataTable([("viaje","Viaje"),("apertura","Abierto el"),("estado","Situación"),("unidades","Tarimas"),("cargadas","Ya cargadas")])
         self.shipments.itemSelectionChanged.connect(self.update_route);v.addWidget(self.shipments,1)
         self.route=label("El viaje te mostrará dónde entregar primero.","route");v.addWidget(self.route)
-        self.loading=DataTable([("descripcion","Producto"),("destino","Tienda"),("parada","Entrega número"),("cantidad","Piezas"),("estado","Situación")]);v.addWidget(self.loading,2)
+        self.loading=DataTable([("descripcion","Producto"),("destino","Tienda"),("parada","Entrega número"),("cantidad","Piezas"),("estado","Situación"),("fecha_empaque","Empacado el")]);v.addWidget(self.loading,2)
         row=QHBoxLayout();self.load_button=button("Cargar siguiente tarima",self.load,True);row.addWidget(self.load_button)
         self.close_button=button("Cerrar embarque",self.close_trip);row.addWidget(self.close_button);v.addLayout(row)
         v.addWidget(label("Se carga primero lo que se entregará al final. Cerrar embarque registra la salida del almacén; no confirma la entrega en tienda.","muted"))
@@ -117,7 +131,7 @@ class Window(WindowSupport,QMainWindow):
         c.addWidget(label("Tus tiendas, a la distancia que tú indiques","section"))
         c.addWidget(label("Ejemplo: «Tienda del centro, a 5 km». La distancia siempre parte de este almacén. La app propone entregar de la más cercana a la más lejana.","muted"))
         row=QHBoxLayout();row.addWidget(button("Agregar destino",self.destination_form,True));row.addWidget(button("Editar destino seleccionado",lambda:self.destination_form(self.destinations.selected())));row.addStretch();c.addLayout(row);v.addWidget(f)
-        self.destinations=DataTable([("nombre","Nombre del destino"),("km","Km desde el almacén")]);v.addWidget(self.destinations,2)
+        self.destinations=DataTable([("nombre","Nombre del destino"),("km","Km desde el almacén"),("fecha_alta","Alta")]);v.addWidget(self.destinations,2)
         v.addWidget(label("Los 3 destinos iniciales y sus distancias son ficticios. Cambiarlos afecta propuestas futuras; los viajes creados conservan su orden y distancia registrados. No se calculan carreteras, tráfico ni kilómetros entre tiendas.","muted"));v.addStretch()
 
     def navigate(self,index):
@@ -130,12 +144,12 @@ class Window(WindowSupport,QMainWindow):
         self.supervisor.render(state.get("supervisor"))
         values=dict(total,pendiente=total["cantidad"]-total["embarcado"])
         for key,w in self.metrics.items():w.setText(number(values[key]))
-        self.stage_progress.update_totals(total)
         self.overview.populate([dict(r,pendiente=r["cantidad"]-r["embarcado"]) for r in state["lines"]])
         tasks=[dict(r,por_recoger=r["cantidad"]-r["recogido"],por_empacar=r["recogido"]-r["empacado"]) for r in state["tasks"] if r["empacado"]<r["cantidad"]]
         self.worklist.populate(tasks)
         self.calendar.populate([dict(r,libre=r["capacidad"]-r["reservado"]) for r in state["days"]])
         self.units.populate([r for r in state["units"] if r["estado"]=="PACKED"])
+        self.packing_history.populate(state["units"])
         self.shipments.populate(state["shipments"]);self.destinations.populate(state.get("destinations",[]))
         self.plan_button.setEnabled(total["planeado"]<total["cantidad"])
         self.stage_button.setEnabled(bool(self.units.selected()));self.update_work_buttons();self.update_route()
@@ -158,7 +172,7 @@ class Window(WindowSupport,QMainWindow):
         elif tasks:
             self.next_kind="pick";self.next_target=2;heading="Recoge el siguiente producto";desc="Te mostramos qué producto, para qué tienda y cuántas piezas faltan.";caption="Recoger producto"
         elif total["planeado"]<total["cantidad"]:
-            self.next_kind="plan";heading="Organiza los pedidos por día";desc="Revisa la capacidad sugerida de 600 piezas al día y la fecha inicial.";caption="Organizar pedidos"
+            self.next_kind="plan";heading="Organiza los pedidos por día";desc="Revisa la capacidad sugerida de 600 piezas al día por almacén y la fecha inicial.";caption="Organizar pedidos"
         else:heading="¡Todo lo solicitado salió del almacén!";desc="Puedes crear otro pedido o consultar el historial de movimientos.";caption="Crear otro pedido"
         self.next_heading.setText(heading);self.next_description.setText(desc);self.next_button.setText(caption)
         self.toast.setText(self.toast.text() if not self.toast.text().startswith("Conectando") else "Conectado · Tus cambios se guardan en SQL Server.")
@@ -286,15 +300,25 @@ class Window(WindowSupport,QMainWindow):
         self.loading.populate(units)
         pending=[u for u in units if u["estado"]=="STAGED"]
         self.next_load=pending[0] if pending else None
-        if pending:self.loading.selectRow(units.index(pending[0]))
+        if pending:
+            for index in range(self.loading.rowCount()):
+                if self.loading.item(index,0).data(Qt.ItemDataRole.UserRole)["id"]==pending[0]["id"]:
+                    self.loading.selectRow(index);break
         self.load_button.setEnabled(bool(pending))
         self.load_button.setText("Cargar siguiente: "+pending[0]["destino"] if pending else "Sin tarimas por cargar")
         self.close_button.setEnabled(bool(row and row["estado"]=="LOADING" and row["cargadas"]==row["unidades"]))
 
     def create_trip(self):
         staged=[u for u in self.state.get("units",[]) if u["estado"]=="STAGED" and u["shipment_id"] is None]
+        warehouses=sorted({u.get("almacen","Almacén") for u in staged})
+        if len(warehouses)>1:
+            from PySide6.QtWidgets import QInputDialog
+            name,ok=QInputDialog.getItem(self,"Almacén de salida","Prepara un viaje de un solo almacén:",warehouses,0,False)
+            if not ok:return
+            staged=[u for u in staged if u.get("almacen","Almacén")==name]
         sites={u["DeliverySiteId"] for u in staged}
-        rows=[r for r in self.state.get("destinations",[]) if r["id"] in sites]
+        catalog=self.state.get("destinations_by_warehouse",{}).get(str(staged[0].get("WarehouseId")),self.state.get("destinations",[])) if staged else []
+        rows=[r for r in catalog if r["id"] in sites]
         if not rows or len(rows)!=len(sites) or any(r["km"] is None for r in rows):
             QMessageBox.information(self,"Faltan datos","Primero deja una tarima en el área de salida y registra los kilómetros de su destino.");return
         rows.sort(key=lambda r:(r["km"],r["nombre"].casefold(),r["id"]))
@@ -393,11 +417,11 @@ class Window(WindowSupport,QMainWindow):
         self.run(work,done)
 
     def csv_dialog(self):
-        dialog=QDialog(self);dialog.setWindowTitle("Importar CSV");dialog.resize(850,570)
+        dialog=QDialog(self);dialog.setWindowTitle("Importar CSV o TXT");dialog.resize(850,570)
         layout=QVBoxLayout(dialog);layout.addWidget(label("Importar un archivo de prueba","section"))
-        layout.addWidget(label("El formato de esta demo tiene 8 columnas. Los productos y destinos deben estar registrados. El archivo real de SAP se adaptará después.","muted"))
+        layout.addWidget(label("La demo admite CSV con comas o TXT con |, UTF-8 y 8 columnas con encabezado. Los productos y destinos deben estar registrados. El archivo real de SAP se adaptará después.","muted"))
         self.filename=label("Sin archivo seleccionado","eyebrow");layout.addWidget(self.filename)
-        layout.addWidget(button("Seleccionar CSV…",self.open_csv))
+        layout.addWidget(button("Seleccionar CSV o TXT…",self.open_csv))
         self.csv=QPlainTextEdit();self.csv.setPlaceholderText("Selecciona el archivo para ver su contenido.");layout.addWidget(self.csv)
         errors=self.state.get("errors",[])
         if errors:layout.addWidget(label("Últimos errores: "+"; ".join(r["mensaje"] for r in errors[:3]),"muted"))
@@ -414,7 +438,7 @@ class Window(WindowSupport,QMainWindow):
             try:detail=json.loads(r["detalle"]).get("message","")
             except (ValueError,TypeError):detail=""
             rows.append(dict(r,accion=names.get(r["accion"],r["accion"]),detalle=detail))
-        table=DataTable([("fecha","Fecha"),("accion","Acción"),("detalle","Qué pasó")]);table.populate(rows);layout.addWidget(table)
+        table=DataTable([("fecha","Fecha"),("accion","Acción"),("detalle","Qué pasó")]);table.populate(rows);layout.addWidget(table);table.add_dates(layout,"fecha","Fecha de acción",True);table.populate(rows)
         layout.addWidget(button("Registrar incidencia",self.incident));layout.addWidget(button("Cerrar",dialog.accept));dialog.exec()
     def manifest(self):
         row=self.selected(self.shipments)

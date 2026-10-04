@@ -18,6 +18,8 @@ def create_trip(db,ctx,payload,operation):
         raise BusinessError("Las tarimas disponibles cambiaron. Actualiza y revisa el viaje.")
     units=[r for r in available if requested is None or r["id"] in requested]
     if not units: raise BusinessError("No hay tarimas disponibles en preembarque.")
+    from backend.app.services.demo_familiar import warehouse_context
+    ctx=warehouse_context(db,ctx,units[0]["WarehouseId"])
     route=route_for_units(db,units)
     destinations=[r["id"] for r in route]
     # Reject a stale preview: changing a distance requires reviewing the proposal again.
@@ -56,16 +58,16 @@ def load(db,ctx,payload,operation):
     hu=next((r for r in db.rows(HU_SQL) if r["id"]==payload["id"]),None)
     if not hu or not hu["shipment_id"] or hu["estado"]!="STAGED":
         raise BusinessError("La tarima debe estar en preembarque y asignada a un viaje abierto.")
-    shipment=required(db,"SELECT Id,Status FROM shipping.Shipment WHERE Id=?",hu["shipment_id"])
+    shipment=required(db,"SELECT Id,Status,DockLocationId FROM shipping.Shipment WHERE Id=?",hu["shipment_id"])
     if shipment["Status"] not in ("OPEN","LOADING"): raise BusinessError("El viaje ya está cerrado.")
     next_stop=db.scalar("""SELECT MAX(st.SequenceNumber) FROM shipping.ShipmentUnit su JOIN planning.TripStop st ON st.Id=su.StopId
 WHERE su.ShipmentId=? AND su.Status='ASSIGNED'""",shipment["Id"])
     if hu["parada"]!=next_stop: raise BusinessError(f"Carga primero las tarimas de la parada {next_stop}; se descargará al final.")
     if payload.get("code")!=hu["codigo"]: raise BusinessError("El código de tarima no coincide.")
-    db.insert("shipping.LoadEvent",ShipmentUnitId=hu["shipment_unit_id"],EventType="LOAD",WarehouseLocationId=ctx["locations"]["DOCK"],
+    db.insert("shipping.LoadEvent",ShipmentUnitId=hu["shipment_unit_id"],EventType="LOAD",WarehouseLocationId=shipment["DockLocationId"],
               ActorUserId=ctx["actor"],OperationId=operation,OccurredAtUtc=now(),Reason="Carga simulada")
     db.execute("UPDATE shipping.ShipmentUnit SET Status='LOADED',UpdatedAtUtc=SYSUTCDATETIME() WHERE Id=?",hu["shipment_unit_id"])
-    db.execute("UPDATE warehouse.HandlingUnit SET Status='LOADED',CurrentLocationId=?,UpdatedAtUtc=SYSUTCDATETIME() WHERE Id=?",ctx["locations"]["DOCK"],hu["id"])
+    db.execute("UPDATE warehouse.HandlingUnit SET Status='LOADED',CurrentLocationId=?,UpdatedAtUtc=SYSUTCDATETIME() WHERE Id=?",shipment["DockLocationId"],hu["id"])
     db.execute("UPDATE shipping.Shipment SET Status='LOADING',UpdatedAtUtc=SYSUTCDATETIME() WHERE Id=?",shipment["Id"])
     return dict(message="Carga confirmada: "+hu["codigo"])
 

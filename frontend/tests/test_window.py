@@ -22,7 +22,10 @@ class DesktopTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):cls.app=QApplication.instance() or QApplication([])
     def setUp(self):
-        self.api=FakeApi();self.window=Window(self.api);self.window.show();self.wait()
+        self.api=FakeApi();self.window=Window(self.api)
+        # Acknowledgement dialogs are modal; these tests verify commands and defaults.
+        self.window._confirm=lambda *args:None
+        self.window.show();self.wait()
     def tearDown(self):self.wait();self.window.close()
     def wait(self):
         for _ in range(200):

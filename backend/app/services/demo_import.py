@@ -10,7 +10,8 @@ from backend.app.repositories.demo import BusinessError, dump, now
 
 def import_orders(db, ctx, payload, operation):
     content=payload["content"]
-    rows,errors=parse_csv(content)
+    is_txt=Path(payload.get("filename","demo.csv")).suffix.lower()==".txt"
+    rows,errors=parse_csv(content,delimiter="|" if is_txt else ",")
     digest=hashlib.sha256(content.encode("utf-8")).digest()
     existing=db.one("SELECT Id FROM integration.ImportedFile WHERE SourceSystemId=? AND ContentHash=?",ctx["source"],digest)
     if existing:
@@ -19,11 +20,23 @@ def import_orders(db, ctx, payload, operation):
     for item in rows:
         d=item["data"]; groups[d["NumeroPedido"]].append(item)
         material=db.one("SELECT Id,Description FROM catalog.Material WHERE Code=? AND IsActive=1",d["CodigoMaterial"])
-        destination=db.one("SELECT ds.Id,c.Id AS CustomerId FROM catalog.DeliverySite ds JOIN catalog.Customer c ON c.Id=ds.CustomerId WHERE ds.Code=? AND c.Code=?",d["CodigoDestino"],d["CodigoCliente"])
+        destination=db.one("SELECT ds.Name AS DestinationName,c.Name AS CustomerName,ds.Id,c.Id AS CustomerId FROM catalog.DeliverySite ds JOIN catalog.Customer c ON c.Id=ds.CustomerId WHERE ds.Code=? AND c.Code=?",d["CodigoDestino"],d["CodigoCliente"])
         if not material or not d["CodigoMaterial"].startswith("DEMO-"):
             errors.append(dict(line=item["number"],message="Material fuera del catálogo DEMO"))
         if not destination or not d["CodigoDestino"].startswith("DEMO-"):
             errors.append(dict(line=item["number"],message="Cliente y destino no coinciden con el catálogo DEMO"))
+        if material and d.get("Producto") and d["Producto"]!=material["Description"]:
+            errors.append(dict(line=item["number"],message="El nombre del producto no corresponde a su código"))
+        if destination:
+            for field,actual in (("QuienPidio","CustomerName"),("Destino","DestinationName")):
+                if d.get(field) and d[field]!=destination[actual]:
+                    errors.append(dict(line=item["number"],message=field+": el nombre no corresponde al código"))
+        if material and d.get("Almacen"):
+            wh=db.one("""SELECT w.Name FROM catalog.MaterialLocation ml JOIN catalog.Location loc ON loc.Id=ml.LocationId
+JOIN catalog.Warehouse w ON w.Id=loc.WarehouseId WHERE ml.MaterialId=? AND ml.IsActive=1 AND loc.IsActive=1
+ORDER BY ml.IsPreferred DESC,ml.Id""",material["Id"])
+            if not wh or wh["Name"]!=d["Almacen"]:
+                errors.append(dict(line=item["number"],message="El almacén no coincide con la ubicación del producto"))
         item["material"]=material; item["destination"]=destination
     for number,items in groups.items():
         if len({i["data"]["CodigoCliente"] for i in items})>1:
@@ -33,7 +46,7 @@ def import_orders(db, ctx, payload, operation):
     # Persist source evidence outside Git; hash path prevents traversal.
     directory=Path(os.environ.get("PPE_PROJECT_ROOT",str(Path(__file__).resolve().parents[3])))/".local"/"imports"
     directory.mkdir(parents=True,exist_ok=True)
-    path=directory/(digest.hex()+".csv")
+    path=directory/(digest.hex()+(".txt" if is_txt else ".csv"))
     path.write_text(content,encoding="utf-8")
     file_id=db.insert("integration.ImportedFile",SourceSystemId=ctx["source"],ContentHash=digest,
                       ByteLength=len(content.encode("utf-8")),OriginalFileName=Path(payload.get("filename","demo.csv")).name[:240],

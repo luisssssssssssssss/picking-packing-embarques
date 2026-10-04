@@ -15,14 +15,14 @@ def supervisor_view(state: dict, day: date | None = None, now: datetime | None =
     today = [t for t in active if str(t["fecha"])[:10] == key]
     overdue = [t for t in active if str(t["fecha"])[:10] < key and t["cantidad"] > t["empacado"]]
     rows = []
-    for t in overdue + today:
+    for t in active:
         pending = max(0, t["cantidad"] - t["empacado"])
         ready = max(0, t["recogido"] - t["empacado"])
         rows.append(dict(t, por_recoger=max(0, t["cantidad"]-t["recogido"]),
                          listo_empacar=ready, pendiente=pending,
                          responsable=t.get("responsable") or "Sin asignar",
                          situacion="Empacado" if not pending else "Listo para empacar" if ready else "Recoger producto",
-                         periodo="Atraso" if str(t["fecha"])[:10] < key else "Hoy"))
+                         periodo="Atraso" if str(t["fecha"])[:10] < key else "Hoy" if str(t["fecha"])[:10] == key else "Próximo"))
     rows.sort(key=lambda t: (t["pendiente"] == 0, t["periodo"] != "Atraso", t["listo_empacar"] == 0, str(t["fecha"])))
     workload = today + overdue
     metrics = dict(programado=sum(t["cantidad"] for t in today),
@@ -50,7 +50,7 @@ def supervisor_view(state: dict, day: date | None = None, now: datetime | None =
             detail = json.loads(event.get("detalle") or "{}")
         except (TypeError,ValueError):
             detail = {}
-        activity.append(dict(hora=local.strftime("%d/%m %H:%M"), accion=actions[event["accion"]],
+        activity.append(dict(fecha=local.isoformat(),hora=local.strftime("%d/%m %H:%M"), accion=actions[event["accion"]],
                              responsable=event.get("responsable") or "Usuario demo",
                              detalle=detail.get("message",actions[event["accion"]])))
     units=state.get("units",[])
@@ -58,7 +58,7 @@ def supervisor_view(state: dict, day: date | None = None, now: datetime | None =
         to_stage=sum(1 for u in units if u["estado"]=="PACKED"),
         waiting_trip=sum(1 for u in units if u["estado"]=="STAGED" and u.get("shipment_id") is None),
         to_load=sum(1 for u in units if u["estado"]=="STAGED" and u.get("shipment_id") is not None))
-    return dict(handoffs=handoffs,fecha=key, actualizado=local_now.isoformat(), metrics=metrics, tasks=rows,
+    return dict(handoffs=handoffs,fecha=key, actualizado=local_now.isoformat(), metrics=metrics, tasks=[r for r in rows if str(r['fecha'])[:10]<=key], all_tasks=rows,
                 sin_programar=unplanned, activity=activity[:8], inventory_known=False,
                 capacidad=sum(d["capacidad"] for d in capacity) if capacity else None,
                 reservado=sum(d["reservado"] for d in capacity))

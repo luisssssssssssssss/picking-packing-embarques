@@ -9,7 +9,7 @@ from backend.app.repositories.demo import BusinessError, now
 DISTANCE_SOURCE = "DEMO: kilómetros capturados desde el almacén"
 
 DESTINATIONS_SQL = """
-SELECT ds.Id AS id,ds.Code AS codigo,ds.Name AS nombre,ds.CustomerId AS customer_id,
+SELECT ds.CreatedAtUtc AS fecha_alta,ds.Id AS id,ds.Code AS codigo,ds.Name AS nombre,ds.CustomerId AS customer_id,
  c.Code AS cliente_codigo,pa.Id AS address_id,dr.Id AS distance_id,dr.RoadDistanceKm AS km
 FROM catalog.DeliverySite ds
 JOIN catalog.Customer c ON c.Id=ds.CustomerId
@@ -22,8 +22,9 @@ OUTER APPLY (SELECT TOP(1) dr.Id,dr.RoadDistanceKm FROM planning.DistanceReferen
 WHERE ds.Code LIKE 'DEMO-%' AND ds.IsActive=1 AND c.IsActive=1 ORDER BY ds.Name,ds.Id
 """
 
-def destinations(db):
-    return db.rows(DESTINATIONS_SQL)
+def destinations(db,warehouse_id=None):
+    if warehouse_id is None:return db.rows(DESTINATIONS_SQL)
+    return db.rows(DESTINATIONS_SQL.replace("w.Code='DEMO-ALM'","w.Id=?"),warehouse_id)
 
 def origin_address(db):
     return db.scalar("""SELECT TOP(1) pa.Id FROM catalog.PointAddress pa JOIN catalog.Warehouse w
@@ -38,8 +39,8 @@ def distance_value(value):
     except (ValueError,InvalidOperation):
         raise BusinessError("Indica kilómetros mayores que cero, hasta 100,000, con máximo 3 decimales.") from None
 
-def record_distance(db,address,km):
-    return db.insert("planning.DistanceReference",OriginAddressId=origin_address(db),
+def record_distance(db,address,km,warehouse_id=None):
+    return db.insert("planning.DistanceReference",OriginAddressId=origin_address(db) if warehouse_id is None else db.scalar("SELECT pa.Id FROM catalog.PointAddress pa JOIN catalog.Warehouse w ON w.PointId=pa.PointId WHERE w.Id=? AND pa.VersionNumber=1",warehouse_id),
         DestinationAddressId=address,RoadDistanceKm=km,MeasuredOn=date.today(),
         SourceDescription=DISTANCE_SOURCE+" · "+uuid4().hex)
 
@@ -70,7 +71,9 @@ def save_destination(db,ctx,payload,operation):
     return dict(message=f"{name}: {km} km desde el almacén. Guardado.",destination_id=ident)
 
 def route_for_units(db,units):
-    catalog={r["id"]:r for r in destinations(db)}
+    warehouses={u.get("WarehouseId") for u in units if u.get("WarehouseId")}
+    if len(warehouses)>1:raise BusinessError("Prepara un viaje por almacén; no mezcles tarimas de distintos almacenes.")
+    catalog={r["id"]:r for r in destinations(db,next(iter(warehouses),None))}
     result=[]
     for ident in {u["DeliverySiteId"] for u in units}:
         row=catalog.get(ident)

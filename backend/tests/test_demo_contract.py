@@ -33,6 +33,10 @@ class ApiTests(unittest.TestCase):
         for path in ("/demo/operator","/demo/snapshot","/demo/sample","/demo/shipments/1/manifest"):
             self.assertEqual(client.get(path).status_code,401)
         self.assertEqual(client.post("/demo/commands/plan",json={"key":"00000000-0000-0000-0000-000000000001","payload":{}}).status_code,401)
+    def test_operator_commands_require_authorization(self):
+        client=TestClient(app)
+        self.assertEqual(client.post("/demo/operator/commands/pick",json={"key":"00000000-0000-0000-0000-000000000001","payload":{}}).status_code,401)
+
     def test_authenticated_sample_and_health_without_database_mutation(self):
         token="test-local-token-"+"x"*32
         with patch.dict(os.environ,{"PPE_DEMO_TOKEN":token}):

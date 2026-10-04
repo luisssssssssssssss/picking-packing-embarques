@@ -84,7 +84,8 @@ class OperatorSqlTests(unittest.TestCase):
         command("create_order",product_id=initial["products"][0]["id"],
                 destination_id=initial["destinations"][0]["id"],quantity=48,due_date="2026-10-02")
         self.assertIsNone(operator_view(snapshot())["task"])
-        command("plan",capacity=600,start_date="2026-10-01")
+        command("plan",capacity=600,start_date="2026-10-03")
+        self.assertEqual(str(snapshot()["tasks"][0]["fecha"]),"2026-10-03")
         task=operator_view(snapshot())["task"]
         self.assertEqual(task["action"],"pick");self.assertEqual(task["quantity"],48)
         self.assertIn("Rack",task["source"])

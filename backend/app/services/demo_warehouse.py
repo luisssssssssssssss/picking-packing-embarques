@@ -33,12 +33,20 @@ def plan(db,ctx,payload,operation):
     lines=db.rows(LINE_SQL+" ORDER BY r.RequestedDate,so.ExternalOrderNumber,l.ExternalLineKey")
     bookings=0
     for line in lines:
+        from backend.app.services.demo_familiar import warehouse_context
+        source=db.one("""SELECT loc.Id,loc.WarehouseId FROM catalog.MaterialLocation ml
+JOIN catalog.Location loc ON loc.Id=ml.LocationId
+WHERE ml.MaterialId=? AND ml.IsActive=1 AND loc.IsActive=1 AND loc.AllowsPicking=1
+ORDER BY ml.IsPreferred DESC,ml.Id""",line["MaterialId"])
+        if not source:raise BusinessError("El producto no tiene ubicación de surtido.")
+        ctx=warehouse_context(db,ctx,source["WarehouseId"])
+        ctx["locations"]["BIN"]=source["Id"]
         remaining=line["cantidad"]-line["planeado"]
         work=start
         while remaining>0:
             if (work-start).days>365:
                 raise BusinessError("El plan excede un año; aumenta capacidad o reduce pedidos.")
-            if work.weekday()>=5:
+            if work.weekday()==6:
                 work+=timedelta(days=1); continue
             did=day(db,ctx,work,capacity)
             free=db.scalar("""SELECT cd.BaseCapacity+cd.ExtraCapacity-cd.UnavailableCapacity-
@@ -59,7 +67,7 @@ FROM planning.CapacityDay cd WHERE cd.Id=?""",did)
                       PlannedBaseQuantity=take,Status="OPEN")
             db.execute("UPDATE operations.SalesOrder SET Status='RELEASED',UpdatedAtUtc=SYSUTCDATETIME() WHERE Id=(SELECT OrderId FROM operations.OrderLine WHERE Id=?)",line["id"])
             remaining-=take; bookings+=1
-    return dict(message=f"{bookings} tareas programadas. Se respetaron reservas existentes y fines de semana.")
+    return dict(message=f"{bookings} tareas programadas. Se respetaron reservas existentes; se programa de lunes a sábado, sin domingos.")
 
 def pick(db,ctx,payload,operation):
     task=required(db,TASK_SQL+" WHERE tl.Id=?",payload["id"])
@@ -86,6 +94,8 @@ def pick(db,ctx,payload,operation):
 
 def pack(db,ctx,payload,operation):
     task=required(db,TASK_SQL+" WHERE tl.Id=?",payload["id"])
+    from backend.app.services.demo_familiar import warehouse_context
+    ctx=warehouse_context(db,ctx,task["WarehouseId"])
     qty=quantity(payload)
     if qty>task["recogido"]-task["empacado"]: raise BusinessError("Solo puedes empacar material recogido y pendiente.")
     destination=db.scalar("SELECT r.DeliverySiteId FROM operations.FulfillmentAllocation a JOIN operations.OrderLineRevision r ON r.Id=a.OrderLineRevisionId WHERE a.Id=?",task["AllocationId"])
@@ -110,6 +120,8 @@ FROM warehouse.PickConfirmation pc WHERE pc.TaskLineId=? ORDER BY pc.Id""",task[
 def stage(db,ctx,payload,operation):
     hu=next((r for r in db.rows(HU_SQL) if r["id"]==payload["id"]),None)
     if not hu or hu["estado"]!="PACKED": raise BusinessError("La tarima debe estar empacada.")
+    from backend.app.services.demo_familiar import warehouse_context
+    ctx=warehouse_context(db,ctx,hu["WarehouseId"])
     db.insert("warehouse.HandlingUnitMovement",HandlingUnitId=hu["id"],FromLocationId=ctx["locations"]["PACKING"],
               ToLocationId=ctx["locations"]["STAGING"],ActorUserId=ctx["actor"],OperationId=operation,
               MovedAtUtc=now(),Reason="Preembarque de demostración")

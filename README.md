@@ -126,3 +126,7 @@ Doble clic en [Iniciar Demo.cmd](Iniciar%20Demo.cmd). El acceso usa Python; el e
 ## Vista del supervisor
 
 Abrir **Iniciar Supervisor.cmd** para consultar el trabajo de hoy, atrasos y últimas confirmaciones. [Uso, límites y explicación de las tablas](docs/vista-supervisor.md).
+
+### Ejercicio para la presentación del 4 de octubre
+
+Abre Iniciar Presentacion.cmd para usar una base separada, con catálogos listos y sin importar pedidos automáticamente. [Guion A a Z y resultados esperados](docs/guia-presentacion-domingo.md). Archivo: Presentacion_domingo_2026-10-04.txt (6 pedidos, 240 piezas, tres almacenes).

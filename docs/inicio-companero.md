@@ -72,10 +72,19 @@ Abre Iniciar Demo.cmd para el operador o Iniciar Supervisor.cmd para ambas vista
 No hay dependencias nuevas ni nuevas tablas. Al iniciar se preparan los catálogos ficticios de ambos almacenes y los destinatarios.
 
 - Operador sin escaneo, con calendario: hoy permite confirmar; días futuros solo consulta.
-- Planeación de lunes a sábado, capacidad por almacén.
+- Planeación todos los días, incluidos domingos, capacidad por almacén.
 - Filtros de fechas e historial de empaque.
 - Almacenes de Víctor y Huicho; destinatarios La Ralde (7 km), Oxxo (1 km) y Salma (20 km).
 - Importa samples/txt/pedidos_legibles.txt desde Pedidos → Importar CSV o TXT. El archivo no se carga automáticamente y sus fechas son fijas de prueba.
 
 Consulta [calendario y catálogos](calendario-y-catalogos.md) y [fechas y TXT](fechas-y-txt.md).
 Validación antes de publicar: 47 pruebas backend y 17 de interfaz aprobadas.
+
+## Actualización del 4 de octubre: IDs y viajes
+1. Con la app cerrada, ejecuta git pull --ff-only.
+2. Ejecuta backend\.venv\Scripts\python.exe -m backend.app.init_database para aplicar la migración 005, sin borrar datos.
+3. Abre Iniciar Presentacion.cmd para ambas pantallas y una base de presentación separada.
+4. Importa Ejercicio_2_domingo.txt: 8 pedidos, 360 piezas, IDs DOM2-001 a DOM2-008, para el domingo 04/10/2026. Incluye tres pedidos diferentes de 60 Coca-Colas.
+5. Organiza desde el 04/10/2026 con 600 piezas por almacén. Recoge, empaca y lleva a salida. En Viajes marca únicamente las tarimas que enviarás. Lo no seleccionado permanece disponible.
+
+El archivo se importa una sola vez; no lo importamos automáticamente. La demo continúa usando un tráiler y un operador. El ejecutable portable para otra laptop todavía está pendiente; estos accesos requieren el entorno Python y SQL Server configurado.

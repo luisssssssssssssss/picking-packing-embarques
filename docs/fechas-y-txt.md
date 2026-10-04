@@ -30,7 +30,7 @@ Texto UTF-8, encabezado y ocho columnas separadas por |. CSV sigue usando comas.
 
 Total: 900 piezas, cuatro pedidos con códigos DEMO-TXT-. Usa los catálogos ficticios existentes.
 
-Importar no programa, recoge, empaca ni embarca automáticamente. Las fechas son de entrega solicitada: el planificador conserva su calendario de lunes a sábado. Para atender una entrega de domingo se debe planear la preparación antes; la demo no retroprograma desde la fecha de entrega ni garantiza cumplimiento. Un pedido importado tarde conserva su fecha solicitada.
+Importar no programa, recoge, empaca ni embarca automáticamente. Las fechas son de entrega solicitada: el planificador admite todos los días, incluidos domingos; la demo no retroprograma desde la fecha de entrega ni garantiza cumplimiento. Un pedido importado tarde conserva su fecha solicitada.
 
 El archivo se probó en una base SQL aislada; no se importó automáticamente a la base de trabajo. Reimportarlo no duplica pedidos.
 

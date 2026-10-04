@@ -30,7 +30,7 @@ Se muestran primero QuienPidio, Producto, CantidadSolicitada, UnidadMedida, Dest
 Los nombres se validan contra los códigos y la ubicación preferida. Cambiar solo el nombre no cambia el producto o el almacén: se registra error.
 
 Contiene seis pedidos y 900 piezas, con entregas solicitadas del domingo 4 al miércoles 7 de octubre.
-El archivo anterior sigue siendo compatible. Las fechas de entrega no son las fechas de preparación: el planificador sigue trabajando de lunes a sábado.
+El archivo anterior sigue siendo compatible. Las fechas de entrega no son las fechas de preparación: el planificador trabaja todos los días, incluidos sábados y domingos.
 
 Los catálogos se crean al iniciar la demo, sin borrar pedidos existentes. El TXT nuevo no se importa automáticamente en la base de trabajo.
 

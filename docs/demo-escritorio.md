@@ -92,6 +92,9 @@ Para generar el ejecutable se usa PyInstaller (dependencia de desarrollo); consu
 
 ## Calendario de trabajo
 
-Desde el 3 de octubre, la planeación admite lunes a sábado y omite domingos. La capacidad indicada también aplica al sábado. Las reservas existentes conservan su fecha; no se reprograman automáticamente. No hay bloqueo de picking o packing por el día actual.
+Desde el 4 de octubre, la planeación admite todos los días, incluidos sábados y domingos. La capacidad indicada también aplica al fin de semana. Las reservas existentes conservan su fecha; no se reprograman automáticamente. No hay bloqueo de picking o packing por el día actual.
 
 Consulta [filtros de fechas y ejemplo TXT](fechas-y-txt.md) para ordenar las listas, buscar un día e importar entregas de prueba.
+
+### Selección de tarimas para el viaje
+En Viajes → Preparar nuevo viaje, el supervisor elige el almacén y marca las tarimas disponibles que quiere enviar. Puede ver ID de pedido, producto, cantidad, destino y código de tarima. Ninguna viene seleccionada automáticamente. La confirmación muestra total y orden de entrega; las no seleccionadas quedan en salida. Solo se incluyen tarimas completas en preembarque sin otro viaje. Un solo tráiler en esta demo: primero cierra el viaje abierto para crear otro. El backend vuelve a validar disponibilidad y distancias al confirmar.
